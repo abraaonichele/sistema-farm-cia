@@ -1,0 +1,91 @@
+{
+  "name": "atendimento-inj-farmacia",
+  "version": "1.0.15",
+  "description": "Aplicativo desktop para atendimento de injetaveis com Firebase.",
+  "main": "electron-main.js",
+  "author": "Mega",
+  "license": "UNLICENSED",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abraaonichele/sistema-farm-cia.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "supabase:password-reset": "node scripts/serve-supabase-password-reset.mjs",
+    "data:compact": "node gerar-dados-medicamentos-compactos.mjs",
+    "build:win": "electron-builder --win nsis --x64 --publish never",
+    "build:win7": "electron-builder --win nsis --x64 --publish never",
+    "build:win:ia32": "electron-builder --win nsis --ia32 --publish never",
+    "build:win7:ia32": "electron-builder --win nsis --ia32 --publish never",
+    "build:win:portable": "electron-builder --win portable --x64 --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:dir": "electron-builder --dir --publish never"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "compression": "maximum",
+    "appId": "com.megafarmacia.atendimentoinj",
+    "productName": "Atendimento Inj Farmacia",
+    "artifactName": "Atendimento-Inj-Farmacia-Setup-${version}.${ext}",
+    "icon": "build/icon.ico",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron-main.js",
+      "preload.js",
+      "index.html",
+      "main.js",
+      "styles.css",
+      "offer-template.css",
+      "public-offers/supabase-config.js",
+      "assets/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "abraaonichele",
+        "repo": "sistema-farm-cia",
+        "releaseType": "release"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "icon": "build/icon-1024.png",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Atendimento Inj Farmacia"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}

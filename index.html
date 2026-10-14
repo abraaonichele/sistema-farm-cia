@@ -1,0 +1,2112 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atendimento Inj Farmacia</title>
+    <meta
+      name="description"
+      content="Dashboard de aplicações e cadastro de pacientes para clínica de injetáveis."
+    />
+    <link rel="stylesheet" href="./styles.css?v=34" />
+    <link rel="stylesheet" href="./offer-template.css?v=22" />
+  </head>
+  <body>
+    <div class="auth-screen" id="auth-screen">
+      <section class="auth-card">
+        <div class="auth-brand">
+          <img src="./assets/logo.png" alt="Logo da farmácia" />
+          <div>
+            <p class="section-label">Acesso ao sistema</p>
+            <h1>Entrar na conta</h1>
+            <p>Use seu CPF, e-mail ou CRF cadastrados no sistema e sua senha.</p>
+          </div>
+        </div>
+
+        <form class="auth-form" id="login-form">
+          <label class="field field-full">
+            <span>Usuário</span>
+            <input id="login-identifier" type="text" placeholder="CPF, e-mail ou CRF" required />
+          </label>
+          <label class="field field-full">
+            <span>Senha</span>
+            <input id="login-password" type="password" placeholder="Sua senha" required />
+          </label>
+          <button type="submit" class="button button-primary auth-submit">
+            Entrar
+          </button>
+          <p class="auth-hint">
+            Acesse com os usuários cadastrados na própria plataforma.
+          </p>
+        </form>
+      </section>
+    </div>
+
+    <main class="app-shell hidden">
+      <aside class="sidebar" aria-label="Navegação principal">
+        <div class="sidebar-brand">
+          <img src="./assets/logo.png" alt="Logo da farmácia" />
+        </div>
+
+        <button class="sidebar-handle" type="button" aria-label="Alternar menu" aria-expanded="true">
+          →
+        </button>
+
+        <nav class="sidebar-nav" aria-label="Navegação principal">
+          <details class="sidebar-category">
+            <summary>Serviços</summary>
+            <div class="sidebar-category-menu">
+              <button class="sidebar-item" type="button" id="open-service">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg></span>
+                <span class="sidebar-text">Novo serviço</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-patients">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></svg></span>
+                <span class="sidebar-text">Paciente</span>
+              </button>
+              <button class="sidebar-item sidebar-patient-action" type="button" id="open-patient">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4" /><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6" /></svg></span>
+                <span class="sidebar-text">Cadastrar paciente</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-register">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg></span>
+                <span class="sidebar-text">Livro de registros</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-doctors">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3v5a6 6 0 0 0 12 0V3M4 3h4M16 3h4M12 14v3a4 4 0 0 0 8 0v-1" /><circle cx="20" cy="13" r="2" /></svg></span>
+                <span class="sidebar-text">Médicos</span>
+              </button>
+            </div>
+          </details>
+          <details class="sidebar-category">
+            <summary>Farmácia</summary>
+            <div class="sidebar-category-menu">
+              <button class="sidebar-item" type="button" id="open-medicines">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.24 4.24 0 0 0-6-6l-10 10a4.24 4.24 0 0 0 6 6zM8.5 10.5l5 5" /></svg></span>
+                <span class="sidebar-text">Consultar medicamentos</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-purchases">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5h2l2.4 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H7" /><circle cx="10" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /></svg></span>
+                <span class="sidebar-text">Compras</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-pricing">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 13 11 22l-9-9V4a2 2 0 0 1 2-2h9z" /><circle cx="8" cy="8" r="1.5" /></svg></span>
+                <span class="sidebar-text">Precificação</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-online-offers">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" /></svg></span>
+                <span class="sidebar-text">Ofertas online</span>
+              </button>
+            </div>
+          </details>
+          <details class="sidebar-category">
+            <summary>Minha conta</summary>
+            <div class="sidebar-category-menu sidebar-category-menu-account">
+              <button class="sidebar-item" type="button" id="open-account">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></svg></span>
+                <span class="sidebar-text">Minha conta</span>
+              </button>
+              <button class="sidebar-item hidden" type="button" id="open-users">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></span>
+                <span class="sidebar-text">Usuários</span>
+              </button>
+              <button class="sidebar-item sidebar-logout" id="logout-button" type="button">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-6" /></svg></span>
+                <span class="sidebar-text">Sair</span>
+              </button>
+            </div>
+          </details>
+          <div class="hidden" aria-hidden="true">
+            <button type="button" id="open-chat"></button>
+            <button type="button" id="open-offer-sheet"></button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="user-chip sidebar-user" id="current-user-label">-</span>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <button class="button button-secondary hidden" id="topbar-logout">Sair</button>
+        </header>
+
+        <section class="hero-panel">
+          <div>
+            <h1>Painel principal</h1>
+          </div>
+        </section>
+
+        <section class="stats-grid" aria-label="Indicadores do dashboard">
+          <article class="stat-card accent">
+            <span class="stat-icon stat-icon-injection" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m18 2 4 4M17 7l-3-3M19 5 8 16M9 13l2 2M7 15l2 2M4 18l2 2M3 21l3-1 12-12-2-2L4 18z" /></svg></span>
+            <div class="stat-copy">
+              <span class="stat-label">Aplicações no mês</span>
+              <strong class="stat-value" id="monthly-applications">0</strong>
+              <span class="stat-help">Total registrado no mês atual</span>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></span>
+            <div class="stat-copy">
+              <span class="stat-label">Pacientes cadastrados</span>
+              <strong class="stat-value" id="total-patients">0</strong>
+              <span class="stat-help">Base ativa no sistema</span>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5h10M9 12h10M9 19h10M5 5h.01M5 12h.01M5 19h.01" /></svg></span>
+            <div class="stat-copy">
+              <span class="stat-label">Aplicações registradas</span>
+              <strong class="stat-value" id="next-action">0</strong>
+              <span class="stat-help">Total acumulado no sistema</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <aside class="panel activity-panel">
+            <div class="panel-header compact">
+              <div>
+                <h2>Atividades dos últimos 3 dias</h2>
+              </div>
+            </div>
+            <div class="activity-list" id="activity-list"></div>
+            <div id="patients-table" class="hidden" aria-hidden="true"></div>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <div class="modal-overlay hidden" id="patient-modal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4" /><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6" /></svg></div>
+            <div>
+              <p class="section-label">Cadastro</p>
+              <h2 id="modal-title">Cadastrar Novo Paciente</h2>
+            </div>
+          </div>
+          <button class="icon-button" id="close-patient" aria-label="Fechar cadastro">
+            ×
+          </button>
+        </header>
+
+        <form class="patient-form" id="patient-form">
+          <div class="field field-full">
+            <label for="patient-name">Nome Completo</label>
+            <input id="patient-name" name="name" type="text" placeholder="Nome Completo" required />
+          </div>
+          <div class="field">
+            <label for="patient-cpf">CPF</label>
+            <input id="patient-cpf" name="cpf" type="text" placeholder="000.000.000-00" required />
+          </div>
+          <div class="field">
+            <label for="patient-birth">Data de Nasc.</label>
+            <input id="patient-birth" name="birthDate" type="date" required />
+          </div>
+          <div class="field field-full">
+            <label for="patient-sex">Sexo</label>
+            <select id="patient-sex" name="sex" required>
+              <option value="Feminino">Feminino</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Outro">Outro</option>
+              <option value="Prefiro não informar">Prefiro não informar</option>
+            </select>
+          </div>
+          <div class="field field-full">
+            <label for="patient-phone">Telefone</label>
+            <input id="patient-phone" name="phone" type="tel" placeholder="(00) 00000-0000" required />
+          </div>
+          <div class="field field-full">
+            <label for="patient-email">E-mail</label>
+            <input id="patient-email" name="email" type="email" placeholder="nome@exemplo.com" required />
+          </div>
+          <div class="field field-full">
+            <label for="patient-address">Endereço</label>
+            <input id="patient-address" name="address" type="text" placeholder="Rua, número, bairro, cidade" required />
+          </div>
+
+          <footer class="modal-footer">
+            <button type="button" class="button button-secondary" id="cancel-patient">
+              Cancelar
+            </button>
+            <button type="submit" class="button button-primary">
+              Salvar paciente
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="patients-modal" aria-hidden="true">
+      <div class="modal-card modal-patients" role="dialog" aria-modal="true" aria-labelledby="patients-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></div>
+            <div>
+              <p class="section-label">Pacientes</p>
+              <h2 id="patients-title">Todos os pacientes</h2>
+            </div>
+          </div>
+          <button class="icon-button" id="close-patients" aria-label="Fechar pacientes">×</button>
+        </header>
+
+        <div class="patients-management-toolbar">
+          <input id="patients-search" type="search" placeholder="Pesquisar por nome ou CPF" />
+          <div>
+            <p class="detail-subtitle">Edite os dados cadastrais ou consulte o histórico completo.</p>
+          </div>
+        </div>
+        <div class="patients-management-list" id="patients-list"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="service-launcher-modal" aria-hidden="true">
+      <div class="modal-card modal-service-launcher" role="dialog" aria-modal="true" aria-labelledby="service-launcher-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg></div>
+            <div>
+              <p class="section-label">Serviço</p>
+              <h2 id="service-launcher-title">Novo Serviço</h2>
+              <p class="service-launcher-intro">Selecione o paciente e abra o atendimento adequado para o momento do cuidado.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-service-launcher" aria-label="Fechar serviços">
+            ×
+          </button>
+        </header>
+
+        <section class="service-launcher-step service-launcher-screen" data-launcher-step="select">
+          <div class="service-launcher-top-grid">
+            <article class="service-launcher-panel service-launcher-panel-search" id="service-search-panel">
+              <label for="service-patient-search">Buscar paciente</label>
+              <div class="service-search-input-wrap">
+                <span class="service-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></span>
+                <input id="service-patient-search" type="text" placeholder="Digite nome ou CPF" />
+                <div class="service-patient-results hidden" id="service-patient-results"></div>
+              </div>
+
+              <div class="service-patient-picker-wrap">
+                <span class="service-field-label">Paciente</span>
+                <button type="button" class="service-patient-picker" id="service-patient-picker">
+                  <div class="service-patient-picker-profile">
+                    <div class="service-patient-picker-avatar" id="service-selected-avatar">-</div>
+                    <div>
+                      <strong id="service-selected-name">Selecione um paciente</strong>
+                      <span id="service-selected-cpf">Escolha um paciente para continuar</span>
+                    </div>
+                  </div>
+                  <span class="service-patient-picker-arrow">⌄</span>
+                </button>
+                <select id="service-patient" class="service-hidden-select" required></select>
+              </div>
+
+              <button type="button" class="button button-primary service-launcher-continue" id="service-continue">
+                Continuar
+              </button>
+            </article>
+
+            <article class="service-launcher-panel service-launcher-panel-selected">
+              <span class="service-field-label">Paciente selecionado</span>
+              <div class="service-selected-box">
+                <div class="service-selected-profile">
+                  <div class="service-selected-avatar" id="service-confirmed-avatar">-</div>
+                  <div>
+                    <h3 id="service-client-name">-</h3>
+                    <p id="service-confirmed-cpf">Escolha um paciente para continuar</p>
+                  </div>
+                </div>
+                <button type="button" class="button button-secondary" id="service-change">
+                  Trocar paciente
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <article class="service-launcher-panel service-launcher-services-panel">
+            <div class="service-launcher-services-head">
+              <h3>Escolha o serviço</h3>
+              <p>Qual atendimento deseja iniciar?</p>
+            </div>
+            <div class="service-grid service-grid-launcher">
+              <button class="service-card" type="button" data-service="Bioimpedância">
+                <span class="service-card-icon violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM8 16v-3M12 16V8M16 16v-5" /></svg></span>
+                <span class="service-card-copy">
+                  <strong>Bioimpedância</strong>
+                  <small>Avaliação da composição corporal por bioimpedância.</small>
+                </span>
+                <span class="service-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </button>
+              <button class="service-card" type="button" data-service="Pressão Arterial">
+                <span class="service-card-icon red" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8zM3.5 12h4l1.5-3 3 6 1.5-3h7" /></svg></span>
+                <span class="service-card-copy">
+                  <strong>Pressão Arterial</strong>
+                  <small>Aferição e acompanhamento da pressão arterial.</small>
+                </span>
+                <span class="service-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </button>
+              <button class="service-card" type="button" data-service="Glicemia">
+                <span class="service-card-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2s7 7.2 7 12a7 7 0 0 1-14 0c0-4.8 7-12 7-12zM9 15a3 3 0 0 0 3 3" /></svg></span>
+                <span class="service-card-copy">
+                  <strong>Glicemia</strong>
+                  <small>Teste de glicemia capilar rápido e seguro.</small>
+                </span>
+                <span class="service-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </button>
+              <button class="service-card" type="button" data-service="Consulta Farmacêutica">
+                <span class="service-card-icon lilac" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9M12 8v8M8 12h8" /><path d="M3 21l2.5-2.5" /></svg></span>
+                <span class="service-card-copy">
+                  <strong>Consulta Farmacêutica</strong>
+                  <small>Orientação personalizada sobre medicamentos e saúde.</small>
+                </span>
+                <span class="service-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </button>
+              <button class="service-card" type="button" data-service="Injetáveis">
+                <span class="service-card-icon rose" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m18 2 4 4M17 7l-3-3M19 5 8 16M9 13l2 2M7 15l2 2M4 18l2 2M3 21l3-1 12-12-2-2L4 18z" /></svg></span>
+                <span class="service-card-copy">
+                  <strong>Injetáveis</strong>
+                  <small>Aplicação de injetáveis com segurança e cuidado.</small>
+                </span>
+                <span class="service-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </button>
+              <button class="service-card" type="button" data-service="Curativos">
+                <span class="service-card-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.24 4.24 0 0 0-6-6l-10 10a4.24 4.24 0 0 0 6 6zM8.5 10.5l5 5M6.5 17.5l2-2M15.5 8.5l2-2" /></svg></span>
+                <span class="service-card-copy">
+                  <strong>Curativos</strong>
+                  <small>Cuidados profissionais para feridas e curativos.</small>
+                </span>
+                <span class="service-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </button>
+            </div>
+          </article>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="medicines-modal" aria-hidden="true">
+      <div class="modal-card modal-medicines" role="dialog" aria-modal="true" aria-labelledby="medicines-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></div>
+            <div>
+              <p class="section-label">Medicamentos</p>
+              <h2 id="medicines-title">Consultar medicamentos</h2>
+              <p class="detail-subtitle">Use a busca para localizar rapidamente o medicamento desejado.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-medicines" aria-label="Fechar consulta de medicamentos">
+            ×
+          </button>
+        </header>
+
+        <section class="medicines-search-screen">
+          <div class="medicines-search-card">
+            <label class="medicines-search-copy" for="medicines-search">
+              <strong>Buscar medicamento</strong>
+              <span>Consulte pelo nome ou pelo EAN da embalagem.</span>
+            </label>
+            <div class="medicines-search-input-wrap">
+              <span class="medicines-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></span>
+              <input id="medicines-search" type="search" placeholder="Digite o nome ou EAN do medicamento" autocomplete="off" />
+            </div>
+          </div>
+          <div class="medicines-results hidden" id="medicines-results" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="chat-modal" aria-hidden="true">
+      <div class="modal-card modal-chat" role="dialog" aria-modal="true" aria-labelledby="chat-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" /><path d="M8 9h8M8 13h5" /></svg></div>
+            <div>
+              <p class="section-label">Comunicação</p>
+              <h2 id="chat-title">Chat</h2>
+              <p class="detail-subtitle">Transforme sua mensagem em um atendimento mais claro, acolhedor e convidativo.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-chat" aria-label="Fechar chat">
+            ×
+          </button>
+        </header>
+
+        <section class="chat-shell">
+          <div class="chat-messages" id="chat-messages" aria-live="polite">
+            <article class="chat-message chat-message-bot">
+              <span class="chat-avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v3M8 3h8M6 8h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3z" /><circle cx="9" cy="14" r="1" /><circle cx="15" cy="14" r="1" /></svg></span>
+              <div class="chat-message-content">
+                <strong>Assistente de atendimento</strong>
+                <div class="chat-bubble">Envie a ideia ou a mensagem que deseja passar ao cliente. Vou criar uma versão mais completa, natural e acolhedora, com emojis e uma abordagem que ajuda no atendimento e nas vendas. 😊</div>
+              </div>
+            </article>
+          </div>
+
+          <form class="chat-composer" id="chat-form">
+            <label for="chat-input">Sua mensagem</label>
+            <div class="chat-composer-row">
+              <textarea id="chat-input" rows="3" maxlength="2000" placeholder="Ex.: oi, chegou o medicamento que você pediu..." required></textarea>
+              <button class="button button-primary chat-submit" id="chat-submit" type="submit">
+                <span>Melhorar mensagem</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </button>
+            </div>
+            <p class="chat-hint">O assistente não inventa preços, descontos, estoque ou orientações de saúde.</p>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="patient-detail-modal" aria-hidden="true">
+      <div class="modal-card modal-detail" role="dialog" aria-modal="true" aria-labelledby="patient-detail-title">
+        <header class="detail-header">
+          <div class="detail-patient">
+            <div class="detail-avatar" id="detail-avatar">P</div>
+            <div>
+              <p class="section-label">Paciente</p>
+              <h2 id="patient-detail-title">Nome do paciente</h2>
+              <p class="detail-subtitle" id="detail-subtitle">CPF • celular • e-mail</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-detail" aria-label="Fechar opções do paciente">
+            ×
+          </button>
+        </header>
+
+        <section class="detail-summary">
+          <div>
+            <span class="summary-label">Data de nascimento</span>
+            <strong id="detail-birth">-</strong>
+          </div>
+          <div>
+            <span class="summary-label">Sexo</span>
+            <strong id="detail-sex">-</strong>
+          </div>
+          <div>
+            <span class="summary-label">Endereço</span>
+            <strong id="detail-address">-</strong>
+          </div>
+        </section>
+
+        <section class="service-group">
+          <div class="service-group-header">
+            <div class="service-group-title">
+              <span class="service-group-icon teal" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z" /></svg></span>
+              <h3>Rastreamento em Saúde</h3>
+            </div>
+            <span class="service-badge">3 serviços</span>
+          </div>
+          <div class="service-grid">
+            <button class="service-card" type="button" data-service="Bioimpedância">
+              <span class="service-card-icon violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM8 16v-3M12 16V8M16 16v-5" /></svg></span>
+              <span class="service-card-copy">
+                <strong>Bioimpedância</strong>
+                <span>Abrir →</span>
+              </span>
+            </button>
+            <button class="service-card" type="button" data-service="Pressão Arterial">
+              <span class="service-card-icon red" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8zM3.5 12h4l1.5-3 3 6 1.5-3h7" /></svg></span>
+              <span class="service-card-copy">
+                <strong>Pressão Arterial</strong>
+                <span>Abrir →</span>
+              </span>
+            </button>
+            <button class="service-card" type="button" data-service="Glicemia">
+              <span class="service-card-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2s7 7.2 7 12a7 7 0 0 1-14 0c0-4.8 7-12 7-12zM9 15a3 3 0 0 0 3 3" /></svg></span>
+              <span class="service-card-copy">
+                <strong>Glicemia</strong>
+                <span>Abrir →</span>
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section class="service-group">
+          <div class="service-group-header">
+            <div class="service-group-title">
+              <span class="service-group-icon purple" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg></span>
+              <h3>Cuidados Farmacêuticos</h3>
+            </div>
+            <span class="service-badge">3 serviços</span>
+          </div>
+          <div class="service-grid">
+            <button class="service-card" type="button" data-service="Consulta Farmacêutica">
+              <span class="service-card-icon lilac" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9M12 8v8M8 12h8" /><path d="M3 21l2.5-2.5" /></svg></span>
+              <span class="service-card-copy">
+                <strong>Consulta Farmacêutica</strong>
+                <span>Abrir →</span>
+              </span>
+            </button>
+            <button class="service-card" type="button" data-service="Injetáveis">
+              <span class="service-card-icon rose" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m18 2 4 4M17 7l-3-3M19 5 8 16M9 13l2 2M7 15l2 2M4 18l2 2M3 21l3-1 12-12-2-2L4 18z" /></svg></span>
+              <span class="service-card-copy">
+                <strong>Injetáveis</strong>
+                <span>Abrir →</span>
+              </span>
+            </button>
+            <button class="service-card" type="button" data-service="Curativos">
+              <span class="service-card-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.24 4.24 0 0 0-6-6l-10 10a4.24 4.24 0 0 0 6 6zM8.5 10.5l5 5M6.5 17.5l2-2M15.5 8.5l2-2" /></svg></span>
+              <span class="service-card-copy">
+                <strong>Curativos</strong>
+                <span>Abrir →</span>
+              </span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="history-modal" aria-hidden="true">
+      <div class="modal-card modal-history" role="dialog" aria-modal="true" aria-labelledby="history-title">
+        <header class="history-header">
+          <div class="detail-patient">
+            <div class="detail-avatar bio-avatar" id="history-avatar">H</div>
+            <div>
+              <p class="section-label">Histórico</p>
+              <h2 id="history-title">Histórico do paciente</h2>
+              <p class="detail-subtitle" id="history-subtitle">Serviços, datas e observações</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-history" aria-label="Fechar histórico">
+            ×
+          </button>
+        </header>
+
+        <div class="history-meta" id="history-meta"></div>
+        <div class="history-filters" aria-label="Filtros do histórico">
+          <div class="history-filter-field">
+            <label for="history-start-date">Data inicial</label>
+            <input id="history-start-date" type="date" />
+          </div>
+          <div class="history-filter-field">
+            <label for="history-end-date">Data final</label>
+            <input id="history-end-date" type="date" />
+          </div>
+          <button type="button" class="button button-secondary" id="history-full">Ver histórico completo</button>
+        </div>
+        <div class="history-sections" id="history-sections"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="register-modal" aria-hidden="true">
+      <div class="modal-card modal-register" role="dialog" aria-modal="true" aria-labelledby="register-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg></div>
+            <div>
+              <p class="section-label">Livro de registro</p>
+              <h2 id="register-title">Gerar relatório</h2>
+            </div>
+          </div>
+          <button class="icon-button" id="close-register" aria-label="Fechar livro de registro">×</button>
+        </header>
+
+        <div class="report-layout">
+          <div class="report-main">
+            <form class="report-form" id="report-form">
+          <div class="report-controls">
+            <label class="field">
+              <span>Gerar relatório por</span>
+              <select id="report-by">
+                <option value="patients">Pacientes</option>
+                <option value="date">Data</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Tipo de relatório</span>
+              <select id="report-type">
+                <option value="complete">Completo</option>
+                <option value="simple">Simples</option>
+                <option value="recipes">Receitas</option>
+              </select>
+            </label>
+
+            <div class="report-service-picker">
+              <span class="report-control-label">Serviços</span>
+              <button type="button" class="service-select-trigger" id="report-services-toggle">Todos os serviços <span>⌄</span></button>
+              <div class="service-select-menu hidden" id="report-services-menu">
+                <button type="button" class="mini-button primary" id="report-select-all-services">Selecionar todos</button>
+                <div id="report-services" class="report-check-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-filter-panel" id="report-patient-filter">
+            <label class="field field-full">
+              <span>Pacientes <small>(selecione um ou mais)</small></span>
+              <input id="report-patient-search" type="search" placeholder="Pesquisar por nome ou CPF" />
+              <div id="report-patients" class="report-check-list"></div>
+            </label>
+          </div>
+
+          <div class="report-date-grid">
+            <label class="field">
+              <span>Data de início</span>
+              <input id="report-start-date" type="date" required />
+            </label>
+            <label class="field">
+              <span>Data de fim</span>
+              <input id="report-end-date" type="date" required />
+            </label>
+          </div>
+
+          <footer class="modal-footer report-actions">
+            <button type="button" class="button button-secondary" id="report-clear">Limpar</button>
+            <button type="submit" class="button button-primary">Gerar relatório</button>
+          </footer>
+            </form>
+          </div>
+
+          <aside class="report-preview-panel">
+            <div class="report-preview-heading">
+              <p class="section-label">Livro de registro</p>
+              <h3>PRÉVIA RELATÓRIO</h3>
+              <p>Selecione os filtros e gere uma visualização antes de imprimir.</p>
+            </div>
+            <div class="report-preview-body">
+              <div class="report-preview-empty" id="report-preview-empty">A prévia aparecerá aqui.</div>
+              <section class="report-result hidden" id="report-result" aria-live="polite"></section>
+            </div>
+            <button type="button" class="button button-primary report-preview-button" id="report-preview-button" disabled>
+              Gerar prévia do relatório
+            </button>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="users-modal" aria-hidden="true">
+      <div class="modal-card modal-users" role="dialog" aria-modal="true" aria-labelledby="users-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></div>
+            <div>
+              <p class="section-label">Usuários</p>
+              <h2 id="users-title">Gerenciar usuários</h2>
+              <p class="detail-subtitle" id="users-form-subtitle">Cadastre e gerencie os acessos do sistema.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-users" aria-label="Fechar usuários">
+            ×
+          </button>
+        </header>
+
+        <section class="users-layout">
+          <form class="users-form" id="users-form">
+            <div class="field field-full">
+              <label for="user-name">Nome</label>
+              <input id="user-name" type="text" placeholder="Nome completo" required />
+            </div>
+            <div class="field">
+              <label for="user-cpf">CPF</label>
+              <input id="user-cpf" type="text" placeholder="000.000.000-00" required />
+            </div>
+            <div class="field">
+              <label for="user-crf">CRF</label>
+              <input id="user-crf" type="text" placeholder="CRF 00000" required />
+            </div>
+            <div class="field field-full">
+              <label for="user-email">E-mail</label>
+              <input id="user-email" type="email" placeholder="usuario@empresa.com" required />
+            </div>
+            <div class="field field-full">
+              <label for="user-password">Senha</label>
+              <input id="user-password" type="password" placeholder="Senha de acesso" required />
+              <small id="user-password-help">Defina uma senha para o acesso do usuário.</small>
+            </div>
+            <div class="field field-full">
+              <label for="user-role">Perfil de acesso</label>
+              <select id="user-role" required>
+                <option value="pharmacist">Usuário comum</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+            <footer class="modal-footer">
+              <button type="button" class="button button-secondary hidden" id="cancel-user-edit">
+                Cancelar edição
+              </button>
+              <button type="submit" class="button button-primary">
+                <span id="users-submit-label">Salvar usuário</span>
+              </button>
+            </footer>
+          </form>
+
+          <div class="users-list-panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="section-label">Cadastro atual</p>
+                <h2>Usuários ativos</h2>
+              </div>
+            </div>
+            <div class="users-list" id="users-list"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="account-modal" aria-hidden="true">
+      <div class="modal-card modal-compact" role="dialog" aria-modal="true" aria-labelledby="account-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></svg></div>
+            <div>
+              <p class="section-label">Minha conta</p>
+              <h2 id="account-title">Perfil do usuário</h2>
+            </div>
+          </div>
+          <button class="icon-button" id="close-account" aria-label="Fechar minha conta">×</button>
+        </header>
+        <div class="pricing-breakdown">
+          <div class="pricing-breakdown-row">
+            <span>Nome</span>
+            <strong id="account-name">-</strong>
+          </div>
+          <div class="pricing-breakdown-row">
+            <span>Perfil</span>
+            <strong id="account-role">-</strong>
+          </div>
+          <div class="pricing-breakdown-row">
+            <span>E-mail</span>
+            <strong id="account-email">-</strong>
+          </div>
+          <div class="pricing-breakdown-row">
+            <span>CPF</span>
+            <strong id="account-cpf">-</strong>
+          </div>
+          <div class="pricing-breakdown-row">
+            <span>CRF</span>
+            <strong id="account-crf">-</strong>
+          </div>
+        </div>
+        <section class="account-update-panel" aria-labelledby="account-update-title">
+          <div>
+            <h3 id="account-update-title">Atualizações do aplicativo</h3>
+            <p>Verifique se há uma versão mais recente para Windows.</p>
+          </div>
+          <button class="button button-secondary" id="check-app-updates" type="button">Verificar atualização</button>
+          <p class="account-update-status" id="app-update-status" aria-live="polite"></p>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="purchases-modal" aria-hidden="true">
+      <div class="modal-card modal-purchases" role="dialog" aria-modal="true" aria-labelledby="purchases-title">
+        <header class="modal-header purchases-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5h2l2.4 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H7" /><circle cx="10" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /></svg></div>
+            <div>
+              <p class="section-label">Controle interno</p>
+              <h2 id="purchases-title">Compras</h2>
+              <p class="purchases-intro">Organize produtos em falta e encomendas de clientes.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-purchases" aria-label="Fechar compras">×</button>
+        </header>
+
+        <div class="purchases-tabs" role="tablist" aria-label="Seções de compras">
+          <button class="purchases-tab is-active" type="button" role="tab" aria-selected="true" data-purchases-tab="shortages">Comprar faltas</button>
+          <button class="purchases-tab" type="button" role="tab" aria-selected="false" data-purchases-tab="orders">Encomenda</button>
+        </div>
+
+        <section class="purchases-panel" data-purchases-panel="shortages">
+          <div class="purchases-card">
+            <div class="purchases-card-heading">
+              <div>
+                <p class="section-label">Reposição de estoque</p>
+                <h3>Comprar faltas</h3>
+              </div>
+              <span class="purchases-count" id="shortages-count">0 itens</span>
+            </div>
+            <form class="purchases-form purchases-form-shortages" id="shortage-form">
+              <label class="field purchases-product-field">
+                <span>Nome do produto</span>
+                <input id="shortage-product" type="text" placeholder="Ex.: Vitamina B12" required />
+              </label>
+              <label class="field">
+                <span>Quantidade</span>
+                <input id="shortage-quantity" type="number" min="1" step="1" placeholder="0" required />
+              </label>
+              <label class="field">
+                <span>Data que zerou o estoque</span>
+                <input id="shortage-date" type="date" required />
+              </label>
+              <button class="button button-primary purchases-submit" type="submit">Adicionar falta</button>
+            </form>
+          </div>
+          <div class="purchases-list" id="shortages-list" aria-live="polite"></div>
+        </section>
+
+        <section class="purchases-panel hidden" data-purchases-panel="orders">
+          <div class="purchases-card">
+            <div class="purchases-card-heading">
+              <div>
+                <p class="section-label">Pedidos de clientes</p>
+                <h3>Encomendar</h3>
+              </div>
+              <span class="purchases-count" id="orders-count">0 encomendas</span>
+            </div>
+            <form class="purchases-form purchases-form-orders" id="order-form">
+              <label class="field">
+                <span>Nome</span>
+                <input id="order-name" type="text" placeholder="Nome do cliente" required />
+              </label>
+              <label class="field">
+                <span>Data da compra</span>
+                <input id="order-date" type="date" required />
+              </label>
+              <label class="field">
+                <span>Telefone</span>
+                <input id="order-phone" type="tel" placeholder="(00) 00000-0000" required />
+              </label>
+              <label class="field purchases-product-field">
+                <span>Produto</span>
+                <input id="order-product" type="text" placeholder="Produto encomendado" required />
+              </label>
+              <label class="field">
+                <span>Quantidade</span>
+                <input id="order-quantity" type="number" min="1" step="1" placeholder="0" required />
+              </label>
+              <button class="button button-primary purchases-submit" type="submit">Adicionar encomenda</button>
+            </form>
+          </div>
+          <div class="purchases-list" id="orders-list" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="pricing-modal" aria-hidden="true">
+      <div class="modal-card modal-pricing" role="dialog" aria-modal="true" aria-labelledby="pricing-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 13 11 22l-9-9V4a2 2 0 0 1 2-2h9z" /><circle cx="8" cy="8" r="1.5" /></svg></div>
+            <div>
+              <p class="section-label">Precificação</p>
+              <input class="pricing-tab-name" id="pricing-tab-name" type="text" value="Precificação principal" aria-label="Nome da aba de precificação" />
+              <p class="service-launcher-intro pricing-helper-copy">
+                Cadastre impostos, custos fixos rateados e calcule o preço de venda com base no lucro real.
+              </p>
+            </div>
+          </div>
+          <div class="pricing-header-actions">
+            <div class="pricing-tabs-control">
+              <button class="button button-secondary" type="button" id="pricing-tabs-toggle" aria-expanded="false">Abas de precificação</button>
+              <div class="pricing-tabs-menu hidden" id="pricing-tabs-menu"></div>
+            </div>
+            <button class="button button-secondary" type="button" id="pricing-new-tab">Nova aba</button>
+            <button class="icon-button" id="close-pricing" aria-label="Fechar precificação">×</button>
+          </div>
+        </header>
+
+        <div class="pricing-layout">
+          <section class="pricing-panel pricing-settings-panel" id="pricing-settings-panel">
+            <div class="pricing-section-head">
+              <div>
+                <p class="section-label">Custos da farmácia</p>
+                <h3>Base de cálculo</h3>
+              </div>
+              <span class="hero-badge">Lucro real</span>
+            </div>
+
+            <form class="pricing-form pricing-settings-form" id="pricing-settings-form">
+              <div class="pricing-summary-grid">
+                <article class="pricing-mini-card">
+                  <span class="pricing-mini-label">Impostos totais</span>
+                  <strong id="pricing-total-tax-rate">0,00%</strong>
+                </article>
+                <article class="pricing-mini-card">
+                  <span class="pricing-mini-label">Custos fixos mensais</span>
+                  <strong id="pricing-total-fixed-cost">R$ 0,00</strong>
+                </article>
+                <article class="pricing-mini-card accent">
+                  <span class="pricing-mini-label">Rateio fixo unitário</span>
+                  <strong id="pricing-fixed-cost-share">Depende da venda</strong>
+                </article>
+              </div>
+
+              <label class="field field-full">
+                <span>Faturamento mensal estimado</span>
+                <input id="pricing-estimated-revenue" type="text" inputmode="decimal" placeholder="Ex.: 25.000,00" />
+              </label>
+
+              <section class="pricing-block">
+                <div class="pricing-block-head">
+                  <div>
+                    <h4>Impostos sobre a venda</h4>
+                    <p class="pricing-helper-copy">Cadastre cada imposto percentual que incide sobre o preço vendido.</p>
+                  </div>
+                  <button type="button" class="mini-button" id="pricing-add-tax">Adicionar imposto</button>
+                </div>
+                <div class="pricing-list-editor" id="pricing-tax-list"></div>
+              </section>
+
+              <section class="pricing-block">
+                <div class="pricing-block-head">
+                  <div>
+                    <h4>Custos fixos do período</h4>
+                    <p class="pricing-helper-copy">Inclua despesas mensais individuais para rateio, como aluguel, energia e sistema.</p>
+                  </div>
+                  <button type="button" class="mini-button" id="pricing-add-fixed-cost">Adicionar custo</button>
+                </div>
+                <div class="pricing-list-editor" id="pricing-fixed-list"></div>
+              </section>
+
+              <section class="pricing-block">
+                <div class="pricing-block-head"><div><h4>Taxas de cartão</h4></div></div>
+                <div class="pricing-card-rates" id="pricing-card-rates">
+                  <label class="field"><span>Débito (%)</span><input data-card-rate="debit" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 1x (%)</span><input data-card-rate="credit1" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 2x (%)</span><input data-card-rate="credit2" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 3x (%)</span><input data-card-rate="credit3" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 4x (%)</span><input data-card-rate="credit4" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 5x (%)</span><input data-card-rate="credit5" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 6x (%)</span><input data-card-rate="credit6" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 7x (%)</span><input data-card-rate="credit7" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 8x (%)</span><input data-card-rate="credit8" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 9x (%)</span><input data-card-rate="credit9" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 10x (%)</span><input data-card-rate="credit10" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 11x (%)</span><input data-card-rate="credit11" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                  <label class="field"><span>Crédito 12x (%)</span><input data-card-rate="credit12" type="text" inputmode="decimal" placeholder="0,00" /></label>
+                </div>
+              </section>
+
+              <div class="pricing-inline-note pricing-helper-copy" id="pricing-settings-note">
+                O rateio fixo por unidade usa a proporção do preço de venda do produto sobre o faturamento mensal estimado.
+              </div>
+
+            </form>
+          </section>
+
+          <section class="pricing-panel pricing-products-panel">
+            <div class="pricing-section-head">
+              <div>
+                <p class="section-label">Produto</p>
+                <h3>Precificação do produto</h3>
+                <p class="pricing-product-intro pricing-helper-copy" id="pricing-product-intro">
+                  Informe custo e preço de venda ou lucro real desejado. O sistema recalcula o lucro real com impostos e rateio configurados.
+                </p>
+              </div>
+            </div>
+
+            <form class="pricing-form" id="pricing-product-form">
+              <div class="pricing-product-grid">
+                <label class="field field-full">
+                  <span>Produto</span>
+                  <input id="pricing-product-name" type="text" placeholder="Ex.: Vitamina B12 2 ml" required />
+                </label>
+                <label class="field">
+                  <span>Código ou referência</span>
+                  <input id="pricing-product-sku" type="text" placeholder="Ex.: SKU-001" />
+                </label>
+                <label class="field">
+                  <span>Preço de custo do produto</span>
+                  <input id="pricing-product-cost" type="text" inputmode="decimal" placeholder="Ex.: 18,90" required />
+                </label>
+                <label class="field">
+                  <span>Preço de venda desejado</span>
+                  <input id="pricing-sale-price" type="text" inputmode="decimal" placeholder="Ex.: 30,00" />
+                </label>
+                <label class="field">
+                  <span>Lucro real desejado (%)</span>
+                  <input id="pricing-target-profit" type="text" inputmode="decimal" placeholder="Ex.: 14,00" />
+                </label>
+                <label class="field">
+                  <span>Cartão</span>
+                  <select id="pricing-card-method"><option value="none">Sem cartão</option><option value="debit">Débito</option><option value="credit1">Crédito 1x</option><option value="credit2">Crédito 2x</option><option value="credit3">Crédito 3x</option><option value="credit4">Crédito 4x</option><option value="credit5">Crédito 5x</option><option value="credit6">Crédito 6x</option><option value="credit7">Crédito 7x</option><option value="credit8">Crédito 8x</option><option value="credit9">Crédito 9x</option><option value="credit10">Crédito 10x</option><option value="credit11">Crédito 11x</option><option value="credit12">Crédito 12x</option></select>
+                </label>
+              </div>
+
+              <div class="pricing-results-grid">
+                <article class="pricing-result-card">
+                  <span class="pricing-result-label">Custo total base</span>
+                  <strong id="pricing-total-cost">R$ 0,00</strong>
+                  <small class="pricing-helper-copy">Custo do produto + rateio fixo mensal proporcional ao preço de venda</small>
+                </article>
+                <article class="pricing-result-card">
+                  <span class="pricing-result-label">Impostos da venda</span>
+                  <strong id="pricing-tax-amount">R$ 0,00</strong>
+                  <small class="pricing-helper-copy">Incidência percentual calculada sobre o preço de venda</small>
+                </article>
+                <article class="pricing-result-card pricing-result-card-profit">
+                  <span class="pricing-result-label">Lucro real do produto</span>
+                  <strong id="pricing-real-profit">-</strong>
+                  <span class="pricing-profit-amount" id="pricing-profit-amount-inline">R$ 0,00</span>
+                  <div class="pricing-profit-meter" aria-hidden="true">
+                    <div class="pricing-profit-meter-fill" id="pricing-profit-meter-fill"></div>
+                  </div>
+                  <small class="pricing-helper-copy" id="pricing-profit-status-label">(preço de venda - todos os custos e impostos) / preço de venda</small>
+                </article>
+                <article class="pricing-result-card pricing-result-card-markup">
+                  <span class="pricing-result-label">Markup bruto</span>
+                  <strong id="pricing-gross-markup">-</strong>
+                  <small class="pricing-helper-copy">(preço de venda - custo do produto) / custo do produto, sem impostos ou rateio</small>
+                </article>
+              </div>
+
+              <div class="pricing-status-box" id="pricing-status">
+                Preencha os parâmetros da farmácia e informe o custo do produto para iniciar a precificação.
+              </div>
+
+              <div class="pricing-breakdown" id="pricing-breakdown">
+                <div class="pricing-breakdown-head pricing-helper-copy">
+                  <span>Detalhamento do cálculo</span>
+                  <small>Visão de conferência por produto</small>
+                </div>
+                <div class="pricing-breakdown-row">
+                  <span>Custo do produto</span>
+                  <strong id="pricing-breakdown-cost">R$ 0,00</strong>
+                </div>
+                <div class="pricing-breakdown-row">
+                  <span>Imposto por venda</span>
+                  <strong id="pricing-breakdown-tax">R$ 0,00</strong>
+                </div>
+                <div class="pricing-breakdown-row">
+                  <span>Custo fixo rateado</span>
+                  <strong id="pricing-breakdown-fixed">R$ 0,00</strong>
+                </div>
+                <div class="pricing-breakdown-row total">
+                  <span>Lucro em reais</span>
+                  <strong id="pricing-breakdown-profit">R$ 0,00</strong>
+                </div>
+              </div>
+
+              <footer class="modal-footer pricing-footer">
+                <button type="button" class="button button-secondary" id="pricing-cancel-edit">
+                  Novo produto
+                </button>
+                <button type="submit" class="button button-primary">
+                  Salvar produto
+                </button>
+              </footer>
+            </form>
+
+            <section class="pricing-products-list-wrap" id="pricing-products-list-wrap">
+              <div class="pricing-block-head">
+                <div>
+                  <h4>Produtos cadastrados</h4>
+                  <p class="pricing-helper-copy">Os indicadores abaixo sempre usam os parâmetros atuais da farmácia.</p>
+                </div>
+              </div>
+              <div class="pricing-products-list" id="pricing-products-list"></div>
+            </section>
+          </section>
+        </div>
+        <footer class="modal-footer pricing-footer pricing-screen-footer">
+          <button type="button" class="button button-primary" id="pricing-save-screen">Salvar tela de precificador</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="online-offers-modal" aria-hidden="true">
+      <div class="modal-card modal-online-offers" role="dialog" aria-modal="true" aria-labelledby="online-offers-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" /></svg></div>
+            <div>
+              <p class="section-label">Divulgação por link</p>
+              <h2 id="online-offers-title">Ofertas online</h2>
+              <p class="detail-subtitle">Publique imagens em sequência e compartilhe um único link com seus clientes.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-online-offers" type="button" aria-label="Fechar ofertas online">×</button>
+        </header>
+
+        <div class="online-offers-service-status is-pending" id="online-offers-service-status" role="status">
+          <span class="online-offers-status-dot" aria-hidden="true"></span>
+          <div>
+            <strong id="online-offers-service-title">Verificando publicação segura…</strong>
+            <p id="online-offers-service-message">A publicação só é liberada com uma sessão Supabase e políticas RLS ativas.</p>
+          </div>
+        </div>
+
+        <form class="online-offers-auth" id="supabase-publisher-login" autocomplete="on">
+          <label class="field">
+            <span>E-mail da conta publicadora</span>
+            <input id="supabase-publisher-email" type="email" autocomplete="username" required placeholder="publicador@farmacia.com.br" />
+          </label>
+          <label class="field">
+            <span>Senha Supabase</span>
+            <input id="supabase-publisher-password" type="password" autocomplete="current-password" minlength="8" required />
+          </label>
+          <button class="button button-primary" id="supabase-publisher-connect" type="submit">Conectar publicador</button>
+          <p>Esta tela apenas entra em uma conta criada no painel Supabase ou por convite; não há cadastro público.</p>
+        </form>
+        <div class="online-offers-auth-actions">
+          <button class="mini-button hidden" id="supabase-publisher-disconnect" type="button">Desconectar publicador</button>
+        </div>
+
+        <div class="online-offers-layout">
+          <form class="online-offers-editor" id="online-offers-form">
+            <div class="online-offers-section-heading">
+              <div>
+                <p class="section-label" id="online-offers-form-label">Nova publicação</p>
+                <h3 id="online-offers-form-title">Folhas da publicação</h3>
+              </div>
+              <span id="online-offers-selection-count">0 folhas</span>
+            </div>
+
+            <div class="online-offers-fields">
+              <label class="field field-full">
+                <span>Título <small>(opcional)</small></span>
+                <input id="online-offer-title" type="text" maxlength="120" placeholder="Ex.: Ofertas do fim de semana" />
+              </label>
+              <label class="field field-full">
+                <span>Válida até <small>(opcional)</small></span>
+                <input id="online-offer-expiration" type="date" />
+              </label>
+            </div>
+
+            <label class="online-offers-dropzone" for="online-offer-images">
+              <input id="online-offer-images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple />
+              <span class="online-offers-dropzone-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6M8.5 8.5h.01" /></svg></span>
+              <strong>Selecionar uma ou várias folhas</strong>
+              <small>Escolha várias imagens de uma vez ou adicione outras depois. Até 12 folhas por link; JPG, PNG e WEBP originais de até 15 MB são otimizados, e GIF mantém a animação.</small>
+            </label>
+
+            <div class="online-offers-selection-empty" id="online-offers-selection-empty">
+              As folhas aparecerão aqui antes da publicação. Você poderá ordenar e remover cada uma.
+            </div>
+            <div class="online-offers-selection hidden" id="online-offers-selection" aria-live="polite"></div>
+            <button class="mini-button online-offers-add-more hidden" id="online-offers-add-more" type="button">
+              + Adicionar mais folhas
+            </button>
+            <button class="mini-button online-offers-cancel-edit hidden" id="online-offers-cancel-edit" type="button">
+              Cancelar edição
+            </button>
+
+            <div class="online-offers-progress hidden" id="online-offers-progress" aria-live="polite">
+              <div>
+                <strong id="online-offers-progress-label">Preparando publicação…</strong>
+                <span id="online-offers-progress-value">0%</span>
+              </div>
+              <progress id="online-offers-progress-bar" max="100" value="0">0%</progress>
+            </div>
+
+            <button class="button button-primary online-offers-publish" id="publish-online-offer" type="submit" disabled>
+              Publicar e gerar link
+            </button>
+          </form>
+
+          <section class="online-offers-published" aria-labelledby="online-offers-published-title">
+            <div class="online-offers-section-heading">
+              <div>
+                <p class="section-label">Links criados</p>
+                <h3 id="online-offers-published-title">Ofertas publicadas</h3>
+              </div>
+              <button class="mini-button" id="refresh-online-offers" type="button">Atualizar</button>
+            </div>
+            <div class="online-offers-list" id="online-offers-list" aria-live="polite">
+              <div class="online-offers-list-empty">Conecte a publicação segura para carregar os links.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="offer-sheet-modal" aria-hidden="true">
+      <div class="modal-card modal-offer-sheet" role="dialog" aria-modal="true" aria-labelledby="offer-sheet-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6M8.5 8.5h.01" /></svg></div>
+            <div>
+              <p class="section-label">Divulgação</p>
+              <h2 id="offer-sheet-title">Folha de oferta</h2>
+              <p class="detail-subtitle">Preencha os dados e acompanhe a prévia antes de imprimir.</p>
+            </div>
+          </div>
+          <div class="offer-header-actions">
+            <button class="button button-secondary" id="open-saved-offer-arts" type="button">Artes salvas</button>
+            <button class="icon-button" id="close-offer-sheet" aria-label="Fechar folha de oferta">×</button>
+          </div>
+        </header>
+
+        <div class="offer-sheet-layout">
+          <form class="offer-sheet-form" id="offer-sheet-form">
+            <div class="offer-sheet-form-heading">
+              <p class="section-label">Dados da oferta</p>
+              <h3>Produto e valores</h3>
+            </div>
+
+            <div class="field field-full">
+              <label for="offer-product-name">Nome do produto</label>
+              <div class="offer-field-editor">
+                <input id="offer-product-name" type="text" maxlength="100" placeholder="Ex.: Vitamina C 1 g" required />
+                <details class="offer-field-settings">
+                  <summary aria-label="Editar configurações do nome do produto" title="Configurações do nome">✎</summary>
+                  <div class="offer-style-palette-panel">
+                    <label><span>Cor do nome</span><input id="offer-product-name-color" type="color" value="#a31620" aria-label="Cor do nome do produto" /></label>
+                    <label class="offer-style-number"><span>Tamanho da fonte</span><span class="offer-point-size"><input id="offer-name-font-size" type="number" min="6" max="120" step="1" value="27" /><span>pt</span></span></label>
+                    <label class="offer-style-range"><span>Largura da barra <output id="offer-name-width-value">100%</output></span><input id="offer-name-width" type="range" min="50" max="150" step="5" value="100" /></label>
+                    <label class="offer-style-range"><span>Altura da barra <output id="offer-name-height-value">100%</output></span><input id="offer-name-height" type="range" min="50" max="150" step="5" value="100" /></label>
+                    <div class="offer-image-position"><div><strong>Posição do nome</strong></div><div class="offer-position-pad" aria-label="Mover nome do produto">
+                      <button type="button" id="offer-name-move-up" aria-label="Mover nome para cima">↑</button><button type="button" id="offer-name-move-left" aria-label="Mover nome para a esquerda">←</button><button type="button" id="offer-name-position-reset" class="offer-position-reset" aria-label="Restaurar posição do nome">•</button><button type="button" id="offer-name-move-right" aria-label="Mover nome para a direita">→</button><button type="button" id="offer-name-move-down" aria-label="Mover nome para baixo">↓</button>
+                    </div></div>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="offer-price-fields">
+              <div class="field">
+                <label for="offer-original-price">Valor original</label>
+                <div class="offer-field-editor">
+                  <div class="offer-currency-input"><span>R$</span><input id="offer-original-price" type="text" inputmode="decimal" placeholder="0,00" required /></div>
+                  <details class="offer-field-settings">
+                    <summary aria-label="Editar configurações do valor original" title="Configurações do valor original">✎</summary>
+                    <div class="offer-style-palette-panel">
+                      <label><span>Cor do valor</span><input id="offer-original-price-color" type="color" value="#a90012" aria-label="Cor do valor original" /></label>
+                      <label class="offer-style-number"><span>Tamanho da fonte</span><span class="offer-point-size"><input id="offer-original-font-size" type="number" min="6" max="120" step="1" value="18" /><span>pt</span></span></label>
+                      <div class="offer-image-position"><div><strong>Posição do valor</strong></div><div class="offer-position-pad" aria-label="Mover valor original">
+                        <button type="button" id="offer-original-move-up" aria-label="Mover valor original para cima">↑</button><button type="button" id="offer-original-move-left" aria-label="Mover valor original para a esquerda">←</button><button type="button" id="offer-original-position-reset" class="offer-position-reset" aria-label="Restaurar posição do valor original">•</button><button type="button" id="offer-original-move-right" aria-label="Mover valor original para a direita">→</button><button type="button" id="offer-original-move-down" aria-label="Mover valor original para baixo">↓</button>
+                      </div></div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+              <div class="field">
+                <label for="offer-discount-price">Valor com desconto</label>
+                <div class="offer-field-editor">
+                  <div class="offer-currency-input"><span>R$</span><input id="offer-discount-price" type="text" inputmode="decimal" placeholder="0,00" required /></div>
+                  <details class="offer-field-settings">
+                    <summary aria-label="Editar configurações do valor com desconto" title="Configurações do valor com desconto">✎</summary>
+                    <div class="offer-style-palette-panel">
+                      <label><span>Cor do preço</span><input id="offer-discount-price-color" type="color" value="#a90012" aria-label="Cor do valor com desconto" /></label>
+                      <label><span>Cor do fundo “Por apenas”</span><input id="offer-price-label-background-color" type="color" value="#ffdf35" /></label>
+                      <label class="offer-style-number"><span>Tamanho da fonte</span><span class="offer-point-size"><input id="offer-discount-font-size" type="number" min="6" max="120" step="1" value="34" /><span>pt</span></span></label>
+                      <label class="offer-style-number"><span>Tamanho de “Por apenas”</span><span class="offer-point-size"><input id="offer-price-label-font-size" type="number" min="6" max="120" step="1" value="18" /><span>pt</span></span></label>
+                      <label class="offer-style-range"><span>Largura da barra “Por apenas” <output id="offer-price-label-width-value">100%</output></span><input id="offer-price-label-width" type="range" min="40" max="160" step="5" value="100" /></label>
+                      <label class="offer-style-range"><span>Altura da barra “Por apenas” <output id="offer-price-label-height-value">100%</output></span><input id="offer-price-label-height" type="range" min="40" max="160" step="5" value="100" /></label>
+                      <div class="offer-image-position"><div><strong>Posição do valor e da faixa</strong></div><div class="offer-position-pad" aria-label="Mover valor com desconto">
+                        <button type="button" id="offer-discount-move-up" aria-label="Mover valor com desconto para cima">↑</button><button type="button" id="offer-discount-move-left" aria-label="Mover valor com desconto para a esquerda">←</button><button type="button" id="offer-discount-position-reset" class="offer-position-reset" aria-label="Restaurar posição do valor com desconto">•</button><button type="button" id="offer-discount-move-right" aria-label="Mover valor com desconto para a direita">→</button><button type="button" id="offer-discount-move-down" aria-label="Mover valor com desconto para baixo">↓</button>
+                      </div></div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </div>
+
+            <div class="field field-full">
+              <label for="offer-description">Descrição do produto</label>
+              <div class="offer-field-editor">
+                <input id="offer-description" type="text" maxlength="500" placeholder="Descreva os principais benefícios, apresentação ou condições da oferta." />
+                <details class="offer-field-settings">
+                  <summary aria-label="Editar configurações da descrição" title="Configurações da descrição">✎</summary>
+                  <div class="offer-style-palette-panel">
+                    <label><span>Cor da descrição</span><input id="offer-description-color" type="color" value="#ffffff" /></label>
+                    <label class="offer-style-number"><span>Tamanho da fonte</span><span class="offer-point-size"><input id="offer-description-font-size" type="number" min="6" max="120" step="1" value="20" /><span>pt</span></span></label>
+                    <div class="offer-image-position"><div><strong>Posição da descrição</strong></div><div class="offer-position-pad" aria-label="Mover descrição do produto">
+                      <button type="button" id="offer-description-move-up" aria-label="Mover descrição para cima">↑</button><button type="button" id="offer-description-move-left" aria-label="Mover descrição para a esquerda">←</button><button type="button" id="offer-description-position-reset" class="offer-position-reset" aria-label="Restaurar posição da descrição">•</button><button type="button" id="offer-description-move-right" aria-label="Mover descrição para a direita">→</button><button type="button" id="offer-description-move-down" aria-label="Mover descrição para baixo">↓</button>
+                    </div></div>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="offer-highlight-editor field-full">
+              <div class="offer-highlight-copy-grid">
+                <div class="offer-highlight-item">
+                <label class="field">
+                  <span>Texto acima da barra amarela</span>
+                  <input id="offer-special-top-text" type="text" maxlength="24" value="Oferta" placeholder="Ex.: Oferta" />
+                </label>
+                <details class="offer-field-settings">
+                  <summary aria-label="Editar configurações do texto acima da barra" title="Configurações do texto acima">✎</summary>
+                  <div class="offer-style-palette-panel">
+                    <label><span>Cor do texto</span><input id="offer-top-text-color" type="color" value="#ffffff" /></label>
+                    <label class="offer-style-range"><span>Inclinação <output id="offer-top-tilt-value">-7°</output></span><input id="offer-top-tilt" type="range" min="-20" max="20" step="1" value="-7" /></label>
+                    <label class="offer-style-number"><span>Tamanho da fonte</span><span class="offer-point-size"><input id="offer-top-font-size" type="number" min="6" max="120" step="1" value="36" /><span>pt</span></span></label>
+                    <div class="offer-image-position">
+                      <div><strong>Posição do texto acima</strong></div>
+                      <div class="offer-position-pad" aria-label="Mover texto acima da barra">
+                        <button type="button" id="offer-top-move-up" aria-label="Mover texto acima para cima">↑</button>
+                        <button type="button" id="offer-top-move-left" aria-label="Mover texto acima para a esquerda">←</button>
+                        <button type="button" id="offer-top-position-reset" class="offer-position-reset" aria-label="Restaurar posição do texto acima">•</button>
+                        <button type="button" id="offer-top-move-right" aria-label="Mover texto acima para a direita">→</button>
+                        <button type="button" id="offer-top-move-down" aria-label="Mover texto acima para baixo">↓</button>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+                </div>
+                <div class="offer-highlight-item">
+                <label class="field">
+                  <span>Texto dentro da barra amarela</span>
+                  <input id="offer-special-band-text" type="text" maxlength="28" value="Especial" placeholder="Ex.: Imperdível" />
+                </label>
+                <details class="offer-field-settings">
+                  <summary aria-label="Editar configurações do texto dentro da barra" title="Configurações do texto dentro">✎</summary>
+                  <div class="offer-style-palette-panel">
+                    <label><span>Cor do texto</span><input id="offer-band-text-color" type="color" value="#a90012" /></label>
+                    <label><span>Cor da barra</span><input id="offer-special-background-color" type="color" value="#ffd42a" /></label>
+                    <label class="offer-style-range"><span>Inclinação <output id="offer-band-tilt-value">-7°</output></span><input id="offer-band-tilt" type="range" min="-20" max="20" step="1" value="-7" /></label>
+                    <label class="offer-style-number"><span>Tamanho da fonte</span><span class="offer-point-size"><input id="offer-band-font-size" type="number" min="6" max="120" step="1" value="42" /><span>pt</span></span></label>
+                    <label class="offer-style-range"><span>Largura da barra <output id="offer-band-width-value">100%</output></span><input id="offer-band-width" type="range" min="50" max="150" step="5" value="100" /></label>
+                    <label class="offer-style-range"><span>Altura da barra <output id="offer-band-height-value">100%</output></span><input id="offer-band-height" type="range" min="50" max="150" step="5" value="100" /></label>
+                    <div class="offer-image-position">
+                      <div><strong>Posição da barra</strong></div>
+                      <div class="offer-position-pad" aria-label="Mover texto dentro da barra">
+                        <button type="button" id="offer-title-band-move-up" aria-label="Mover barra para cima">↑</button>
+                        <button type="button" id="offer-title-band-move-left" aria-label="Mover barra para a esquerda">←</button>
+                        <button type="button" id="offer-title-band-position-reset" class="offer-position-reset" aria-label="Restaurar posição da barra">•</button>
+                        <button type="button" id="offer-title-band-move-right" aria-label="Mover barra para a direita">→</button>
+                        <button type="button" id="offer-title-band-move-down" aria-label="Mover barra para baixo">↓</button>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+                </div>
+              </div>
+            </div>
+
+            <div class="offer-validity-fields">
+              <label class="field">
+                <span>Oferta válida até <small>(opcional)</small></span>
+                <input id="offer-valid-until" type="date" />
+              </label>
+              <div class="offer-stock-setting">
+                <div>
+                  <strong>Enquanto durarem os estoques</strong>
+                  <span>Mostra esta mensagem no rodapé da oferta.</span>
+                </div>
+                <button class="offer-stock-toggle is-active" id="offer-stock-toggle" type="button" aria-pressed="true">Ativada</button>
+              </div>
+            </div>
+
+            <div class="offer-image-field field-full">
+              <span class="offer-image-label">Imagem do produto</span>
+              <input class="offer-file-input" id="offer-image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+              <div class="offer-image-picker" id="offer-image-picker">
+                <div class="offer-image-thumb" id="offer-image-thumb">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6M8.5 8.5h.01" /></svg>
+                </div>
+                <div class="offer-image-picker-copy">
+                  <strong>Adicione uma foto do produto</strong>
+                  <span>PNG, JPG, WEBP ou GIF de até 10 MB.</span>
+                </div>
+                <label class="button button-secondary" for="offer-image-input">Adicionar imagem</label>
+                <button class="mini-button danger hidden" id="remove-offer-image" type="button">Remover</button>
+              </div>
+              <div class="offer-background-removal hidden" id="offer-background-removal">
+                <div>
+                  <strong>Fundo da imagem</strong>
+                  <span>Remove fundos claros e recorta as bordas para destacar o produto.</span>
+                </div>
+                <button class="offer-background-button" id="offer-background-button" type="button">Remover fundo</button>
+              </div>
+              <div class="offer-image-zoom hidden" id="offer-image-zoom-controls">
+                <div class="offer-adjustment-tabs" role="tablist" aria-label="Ajustes do produto">
+                  <button class="is-active" id="offer-image-tab" type="button" role="tab" aria-selected="true" aria-controls="offer-image-adjustments">Imagem</button>
+                  <button id="offer-shadow-tab" type="button" role="tab" aria-selected="false" aria-controls="offer-shadow-adjustments">Sombra</button>
+                </div>
+                <div class="offer-adjustment-panel" id="offer-image-adjustments" role="tabpanel" aria-labelledby="offer-image-tab">
+                <div class="offer-image-zoom-title">
+                  <span>Zoom da imagem</span>
+                  <output id="offer-image-zoom-value" for="offer-image-zoom">100%</output>
+                </div>
+                <div class="offer-image-zoom-row">
+                  <button class="offer-zoom-button" id="offer-image-zoom-out" type="button" aria-label="Diminuir zoom">−</button>
+                  <input id="offer-image-zoom" type="range" min="50" max="200" step="5" value="100" aria-label="Zoom da imagem do produto" />
+                  <button class="offer-zoom-button" id="offer-image-zoom-in" type="button" aria-label="Aumentar zoom">+</button>
+                  <button class="offer-zoom-reset" id="offer-image-zoom-reset" type="button">Restaurar</button>
+                </div>
+                <div class="offer-image-position">
+                  <div>
+                    <strong>Posição da imagem</strong>
+                    <span>Mova o produto dentro da folha.</span>
+                  </div>
+                  <div class="offer-position-pad" aria-label="Mover imagem do produto">
+                    <button type="button" id="offer-image-move-up" aria-label="Mover imagem para cima">↑</button>
+                    <button type="button" id="offer-image-move-left" aria-label="Mover imagem para a esquerda">←</button>
+                    <button type="button" id="offer-image-position-reset" class="offer-position-reset" aria-label="Centralizar imagem">•</button>
+                    <button type="button" id="offer-image-move-right" aria-label="Mover imagem para a direita">→</button>
+                    <button type="button" id="offer-image-move-down" aria-label="Mover imagem para baixo">↓</button>
+                  </div>
+                </div>
+                </div>
+                <div class="offer-adjustment-panel offer-shadow-controls hidden" id="offer-shadow-adjustments" role="tabpanel" aria-labelledby="offer-shadow-tab">
+                  <div class="offer-image-zoom-title">
+                    <span>Zoom da sombra</span>
+                    <output id="offer-shadow-zoom-value" for="offer-shadow-zoom">100%</output>
+                  </div>
+                  <div class="offer-image-zoom-row">
+                    <button class="offer-zoom-button" id="offer-shadow-zoom-out" type="button" aria-label="Diminuir sombra">−</button>
+                    <input id="offer-shadow-zoom" type="range" min="40" max="220" step="5" value="100" aria-label="Zoom da sombra do produto" />
+                    <button class="offer-zoom-button" id="offer-shadow-zoom-in" type="button" aria-label="Aumentar sombra">+</button>
+                    <button class="offer-zoom-reset" id="offer-shadow-zoom-reset" type="button">Restaurar</button>
+                  </div>
+                  <div class="offer-image-zoom-title">
+                    <span>Altura da sombra</span>
+                    <output id="offer-shadow-height-value" for="offer-shadow-height">100%</output>
+                  </div>
+                  <div class="offer-image-zoom-row">
+                    <button class="offer-zoom-button" id="offer-shadow-height-out" type="button" aria-label="Deixar sombra mais fina">−</button>
+                    <input id="offer-shadow-height" type="range" min="25" max="250" step="5" value="100" aria-label="Altura da sombra do produto" />
+                    <button class="offer-zoom-button" id="offer-shadow-height-in" type="button" aria-label="Deixar sombra mais grossa">+</button>
+                    <button class="offer-zoom-reset" id="offer-shadow-height-reset" type="button">Restaurar</button>
+                  </div>
+                  <div class="offer-image-position">
+                    <div>
+                      <strong>Posição da sombra</strong>
+                      <span>Ajuste a sombra separadamente.</span>
+                    </div>
+                    <div class="offer-position-pad" aria-label="Mover sombra do produto">
+                      <button type="button" id="offer-shadow-move-up" aria-label="Mover sombra para cima">↑</button>
+                      <button type="button" id="offer-shadow-move-left" aria-label="Mover sombra para a esquerda">←</button>
+                      <button type="button" id="offer-shadow-position-reset" class="offer-position-reset" aria-label="Centralizar sombra">•</button>
+                      <button type="button" id="offer-shadow-move-right" aria-label="Mover sombra para a direita">→</button>
+                      <button type="button" id="offer-shadow-move-down" aria-label="Mover sombra para baixo">↓</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="modal-footer offer-sheet-actions">
+              <button type="button" class="button button-secondary" id="clear-offer-sheet">Limpar</button>
+              <details class="offer-resize-menu" id="offer-resize-menu">
+                <summary class="button button-secondary"><span aria-hidden="true">▭</span><span id="offer-resize-label">Redimensionar</span></summary>
+                <div class="offer-resize-options" id="offer-resize-options" role="menu" aria-label="Tamanho da arte">
+                  <button type="button" role="menuitemradio" data-offer-format="square" aria-checked="false"><span class="offer-format-mark" aria-hidden="true"></span><strong>Quadrado</strong><small>1:1</small></button>
+                  <button type="button" role="menuitemradio" data-offer-format="story" aria-checked="false"><span class="offer-format-mark" aria-hidden="true"></span><strong>Story</strong><small>9:16</small></button>
+                </div>
+              </details>
+              <button type="button" class="button button-secondary offer-save-art-button" id="save-offer-art">Salvar arte</button>
+              <button type="button" class="button button-secondary" id="save-offer-pdf">Salvar PDF sem bordas</button>
+              <button type="submit" class="button button-primary">Imprimir folha de oferta</button>
+            </footer>
+          </form>
+
+          <section class="offer-preview-panel" aria-labelledby="offer-preview-title">
+            <div class="offer-preview-heading">
+              <div>
+                <p class="section-label">Prévia</p>
+                <h3 id="offer-preview-title">Como a folha ficará</h3>
+              </div>
+              <span id="offer-preview-format">4:5</span>
+            </div>
+
+            <article class="offer-poster offer-art-template" id="offer-sheet-preview">
+              <div class="offer-art-canvas">
+                <img
+                  class="offer-template-image"
+                  id="offer-template-background"
+                  src="./assets/modelo-panfleto-oferta-story.png"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <header class="offer-poster-header">
+                  <div id="offer-preview-special">
+                    <span class="offer-special-lead" id="offer-preview-special-lead">Oferta</span>
+                    <span class="offer-special-band" id="offer-preview-special-band">Especial</span>
+                  </div>
+                </header>
+                <div class="offer-poster-image hidden" id="offer-preview-image-wrap">
+                  <img class="hidden" id="offer-preview-image" alt="Imagem do produto" />
+                  <div class="offer-product-shadow" aria-hidden="true"></div>
+                  <div class="offer-preview-placeholder" id="offer-preview-placeholder">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6M8.5 8.5h.01" /></svg>
+                    <span>Imagem do produto</span>
+                  </div>
+                </div>
+                <div class="offer-poster-content">
+                  <h4 class="hidden" id="offer-preview-name"></h4>
+                  <p class="offer-preview-description hidden" id="offer-preview-description"></p>
+                  <div class="offer-preview-prices hidden" id="offer-preview-prices">
+                    <span class="hidden" id="offer-preview-original-wrap">De <s id="offer-preview-original"></s></span>
+                    <div class="hidden" id="offer-preview-discount-wrap"><small>Por apenas</small><strong id="offer-preview-discount"></strong></div>
+                  </div>
+                </div>
+              </div>
+              <footer id="offer-preview-footer">Oferta válida enquanto durarem os estoques.</footer>
+            </article>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="saved-offer-arts-modal" aria-hidden="true">
+      <div class="modal-card offer-library-modal" role="dialog" aria-modal="true" aria-labelledby="saved-offer-arts-title">
+        <header class="modal-header">
+          <div>
+            <p class="section-label">Biblioteca</p>
+            <h2 id="saved-offer-arts-title">Artes salvas</h2>
+            <p class="detail-subtitle">Selecione uma arte para abrir na folha de oferta.</p>
+          </div>
+          <button class="icon-button" id="close-saved-offer-arts" aria-label="Fechar artes salvas">×</button>
+        </header>
+        <div class="saved-offer-art-list" id="saved-offer-art-list"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="offer-art-name-modal" aria-hidden="true">
+      <div class="modal-card offer-name-modal" role="dialog" aria-modal="true" aria-labelledby="offer-art-name-title">
+        <header class="modal-header">
+          <div>
+            <p class="section-label">Identificação</p>
+            <h2 id="offer-art-name-title">Salvar arte</h2>
+          </div>
+          <button class="icon-button" id="close-offer-art-name" aria-label="Fechar">×</button>
+        </header>
+        <form id="offer-art-name-form">
+          <label class="field field-full">
+            <span>Nome da arte</span>
+            <input id="offer-art-name" type="text" maxlength="80" placeholder="Ex.: Oferta infantil de vitaminas" required />
+          </label>
+          <footer class="modal-footer">
+            <button type="button" class="button button-secondary" id="cancel-offer-art-name">Cancelar</button>
+            <button type="submit" class="button button-primary" id="confirm-offer-art-name">Salvar</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="bioimpedance-modal" aria-hidden="true">
+      <div class="modal-card modal-bio" role="dialog" aria-modal="true" aria-labelledby="bio-title">
+        <header class="bio-header">
+          <div class="detail-patient">
+            <div class="detail-avatar bio-avatar" id="bio-avatar">B</div>
+            <div>
+              <p class="section-label">Bioimpedância</p>
+              <h2 id="bio-title">Novo atendimento</h2>
+              <p class="detail-subtitle" id="bio-subtitle">Selecione as etapas e preencha os dados.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-bio" aria-label="Fechar bioimpedância">
+            ×
+          </button>
+        </header>
+
+        <div class="bio-date-row">
+          <div class="field">
+            <label for="bio-date">Data</label>
+            <input id="bio-date" class="custom-date-input" type="text" placeholder="dd/mm/aaaa" readonly />
+          </div>
+          <div class="field">
+            <label for="bio-time">Hora</label>
+            <input id="bio-time" type="time" />
+          </div>
+        </div>
+
+        <section class="bio-stepper" aria-label="Etapas da bioimpedância">
+          <div class="bio-step" data-step-label="1">
+            <span class="bio-step-dot">1</span>
+            <strong>Elegibilidade</strong>
+          </div>
+          <div class="bio-step current" data-step-label="2">
+            <span class="bio-step-dot">2</span>
+            <strong>Dados básicos</strong>
+          </div>
+          <div class="bio-step" data-step-label="3">
+            <span class="bio-step-dot">3</span>
+            <strong>Antropometria</strong>
+          </div>
+          <div class="bio-step" data-step-label="4">
+            <span class="bio-step-dot">4</span>
+            <strong>Resultados</strong>
+          </div>
+        </section>
+
+        <form class="bio-form" id="bio-form">
+          <section class="bio-panel" data-bio-step="1">
+            <h3>Etapa 1 - Elegibilidade</h3>
+            <div class="bio-grid">
+              <label class="bio-choice">
+                <input type="radio" name="eligibility" value="Apto" checked />
+                <span>Apto para avaliação</span>
+              </label>
+              <label class="bio-choice">
+                <input type="radio" name="eligibility" value="Em jejum" />
+                <span>Em jejum</span>
+              </label>
+              <label class="bio-choice">
+                <input type="radio" name="eligibility" value="Contraindicado" />
+                <span>Contraindicado</span>
+              </label>
+              <label class="bio-choice full">
+                <span>Observação de elegibilidade</span>
+                <textarea id="bio-eligibility-note" rows="3" placeholder="Ex.: sem metais, sem exercício recente, sem gravidez..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel active" data-bio-step="2">
+            <h3>Etapa 2 - Dados básicos do paciente</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Peso (kg)</span>
+                <input id="bio-weight" type="number" min="0" step="0.1" placeholder="Ex.: 72,4" />
+              </label>
+              <label class="bio-field">
+                <span>Altura (cm)</span>
+                <input id="bio-height" type="number" min="0" step="0.1" placeholder="Ex.: 168" />
+              </label>
+              <label class="bio-field">
+                <span>Idade (anos)</span>
+                <input id="bio-age" type="number" min="0" step="1" placeholder="Ex.: 26" />
+              </label>
+              <label class="bio-field">
+                <span>Sexo</span>
+                <select id="bio-sex">
+                  <option value="Feminino">Feminino</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel" data-bio-step="3">
+            <h3>Etapa 3 - Medidas corporais</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Cintura (cm)</span>
+                <input id="bio-waist" type="number" min="0" step="0.1" placeholder="Ex.: 81" />
+              </label>
+              <label class="bio-field">
+                <span>Pescoço (cm)</span>
+                <input id="bio-neck" type="number" min="0" step="0.1" placeholder="Ex.: 35" />
+              </label>
+              <label class="bio-field">
+                <span>Quadril (cm)</span>
+                <input id="bio-hip" type="number" min="0" step="0.1" placeholder="Ex.: 98" />
+              </label>
+              <label class="bio-field">
+                <span>Nível de atividade</span>
+                <select id="bio-activity">
+                  <option value="Sedentário">Sedentário</option>
+                  <option value="Levemente ativo">Levemente ativo</option>
+                  <option value="Moderadamente ativo">Moderadamente ativo</option>
+                  <option value="Muito ativo">Muito ativo</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel" data-bio-step="4">
+            <h3>Etapa 4 - Resultados</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>% de Gordura corporal</span>
+                <input id="bio-body-fat" type="number" min="0" step="0.1" placeholder="Ex.: 24,1" />
+              </label>
+              <label class="bio-field">
+                <span>% Músculo esquelético</span>
+                <input id="bio-skeletal-muscle" type="number" min="0" step="0.1" placeholder="Ex.: 34,7" />
+              </label>
+              <label class="bio-field">
+                <span>Metabolismo basal (Kcal)</span>
+                <input id="bio-basal" type="number" min="0" step="1" placeholder="Ex.: 1510" />
+              </label>
+              <label class="bio-field">
+                <span>Nível de gordura visceral</span>
+                <input id="bio-visceral-fat" type="number" min="0" step="1" placeholder="Ex.: 8" />
+              </label>
+              <label class="bio-field full">
+                <span>Idade corporal (anos)</span>
+                <input id="bio-body-age" type="number" min="0" step="1" placeholder="Ex.: 29" />
+              </label>
+              <label class="bio-field full">
+                <span>Observações</span>
+                <textarea id="bio-observations" rows="4" placeholder="Anotações do atendimento..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-result hidden" id="bio-result">
+            <h3>Interpretação do resultado</h3>
+            <div class="bio-result-card" id="bio-result-card">
+              Preencha os dados e toque em "Interpretar resultados".
+            </div>
+          </section>
+
+          <footer class="bio-actions">
+            <button type="button" class="button button-secondary bio-nav" id="bio-prev">
+              ← Voltar
+            </button>
+            <button type="button" class="button button-secondary bio-nav" id="bio-next">
+              Avançar →
+            </button>
+            <button type="button" class="button button-primary bio-nav bio-interpret" id="bio-interpret">
+              Interpretar resultados
+            </button>
+            <button type="submit" class="button button-primary bio-save" id="bio-save">
+              Salvar atendimento
+            </button>
+            <button type="button" class="button button-primary bio-save" id="bio-save-print">
+              Salvar e imprimir
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="doctors-modal" aria-hidden="true">
+      <div class="modal-card modal-users" role="dialog" aria-modal="true" aria-labelledby="doctors-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3v5a6 6 0 0 0 12 0V3M4 3h4M16 3h4M12 14v3a4 4 0 0 0 8 0v-1" /><circle cx="20" cy="13" r="2" /></svg></div>
+            <div>
+              <p class="section-label">Médicos</p>
+              <h2 id="doctors-title">Gerenciar médicos</h2>
+            </div>
+          </div>
+          <button class="icon-button" id="close-doctors" aria-label="Fechar médicos">
+            ×
+          </button>
+        </header>
+
+        <section class="users-layout">
+          <form class="users-form" id="doctors-form">
+            <div class="field field-full">
+              <label for="doctor-name">Nome</label>
+              <input id="doctor-name" type="text" placeholder="Nome completo" required />
+            </div>
+            <div class="field">
+              <label for="doctor-registry">Número do CRM</label>
+              <input id="doctor-registry" type="text" placeholder="000000" required />
+            </div>
+            <div class="field">
+              <label for="doctor-uf">UF</label>
+              <input id="doctor-uf" type="text" maxlength="2" placeholder="SP" required />
+            </div>
+            <footer class="modal-footer">
+              <button type="submit" class="button button-primary">
+                Salvar médico
+              </button>
+            </footer>
+          </form>
+
+          <div class="users-list-panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="section-label">Cadastro atual</p>
+                <h2>Médicos cadastrados</h2>
+              </div>
+            </div>
+            <div class="users-list" id="doctors-list"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="clinical-modal" aria-hidden="true">
+      <div class="modal-card modal-clinical" role="dialog" aria-modal="true" aria-labelledby="clinical-title">
+        <header class="bio-header">
+          <div class="detail-patient">
+            <div class="detail-avatar bio-avatar" id="clinical-avatar">C</div>
+            <div>
+              <p class="section-label" id="clinical-label">Atendimento</p>
+              <h2 id="clinical-title">Novo registro</h2>
+              <p class="detail-subtitle" id="clinical-subtitle">Preencha os dados do atendimento.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-clinical" aria-label="Fechar atendimento">
+            ×
+          </button>
+        </header>
+
+        <div class="bio-date-row">
+          <div class="field">
+            <label for="clinical-date">Data</label>
+            <input id="clinical-date" class="custom-date-input" type="text" placeholder="dd/mm/aaaa" readonly required />
+          </div>
+          <div class="field">
+            <label for="clinical-time">Hora</label>
+            <input id="clinical-time" type="time" required />
+          </div>
+        </div>
+
+        <form class="bio-form" id="clinical-form">
+          <section class="bio-panel" data-clinical-kind="injectable">
+            <h3>Injetáveis</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Nome do Medicamento</span>
+                <input id="injectable-medicine" type="text" placeholder="Ex.: Dipirona" required />
+              </label>
+              <label class="bio-field">
+                <span>Posologia</span>
+                <input id="injectable-dosage" type="text" placeholder="Ex.: 1 ampola" required />
+              </label>
+              <label class="bio-field">
+                <span>Tipo de Aplicação</span>
+                <select id="injectable-type" required>
+                  <option value="Intramuscular (IM)">Intramuscular (IM)</option>
+                  <option value="Subcutânea (SC)">Subcutânea (SC)</option>
+                  <option value="Endovenosa (EV)">Endovenosa (EV)</option>
+                  <option value="Intradérmica (ID)">Intradérmica (ID)</option>
+                </select>
+              </label>
+              <label class="bio-field">
+                <span>Local de Aplicação</span>
+                <select id="injectable-location" required>
+                  <option value="Dorsoglúteo direito">Dorsoglúteo direito</option>
+                  <option value="Dorsoglúteo esquerdo">Dorsoglúteo esquerdo</option>
+                  <option value="Ventroglúteo direito">Ventroglúteo direito</option>
+                  <option value="Ventroglúteo esquerdo">Ventroglúteo esquerdo</option>
+                  <option value="Braço direito">Braço direito</option>
+                  <option value="Braço esquerdo">Braço esquerdo</option>
+                  <option value="Abdome">Abdome</option>
+                  <option value="Outra">Outra</option>
+                </select>
+              </label>
+              <label class="bio-field">
+                <span>Código de Barras</span>
+                <input id="injectable-barcode" type="text" placeholder="Digite ou escaneie" required />
+              </label>
+              <label class="bio-field">
+                <span>Lote do Produto</span>
+                <input id="injectable-batch" type="text" placeholder="Ex.: L12345" required />
+              </label>
+              <label class="bio-field">
+                <span>Validade do Produto</span>
+                <input id="injectable-expiration" class="custom-date-input" type="text" placeholder="dd/mm/aaaa" readonly required />
+              </label>
+              <label class="bio-choice full injectable-next-dose-toggle">
+                <input id="injectable-has-next-dose" type="checkbox" />
+                <span>Outra dose?</span>
+              </label>
+              <label class="bio-field injectable-next-dose-field hidden" id="injectable-next-date-field">
+                <span>Data da próxima dose</span>
+                <input id="injectable-next-date" class="custom-date-input" type="text" placeholder="dd/mm/aaaa" readonly />
+              </label>
+              <label class="bio-field injectable-next-dose-field hidden" id="injectable-next-time-field">
+                <span>Horário</span>
+                <input id="injectable-next-time" type="time" />
+              </label>
+            </div>
+
+            <h3 style="margin-top: 22px;">Dados do Prescritor</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Nome do Prescritor</span>
+                <input id="injectable-prescriber-name" type="text" placeholder="Nome completo" required />
+              </label>
+              <label class="bio-field">
+                <span>Conselho</span>
+                <select id="injectable-council" required>
+                  <option value="CRM">CRM</option>
+                  <option value="CRF">CRF</option>
+                  <option value="COREN">COREN</option>
+                  <option value="CRO">CRO</option>
+                </select>
+              </label>
+              <label class="bio-field">
+                <span>Número do Registro</span>
+                <div class="field-inline-action">
+                  <input id="injectable-registry" type="text" placeholder="000000" required />
+                  <button type="button" class="inline-icon-button" id="search-doctor-by-registry" aria-label="Buscar médico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg></button>
+                </div>
+              </label>
+              <label class="bio-field">
+                <span>UF</span>
+                <input id="injectable-uf" type="text" maxlength="2" placeholder="SP" required />
+              </label>
+              <label class="bio-field full">
+                <span>Observações</span>
+                <textarea id="injectable-observations" rows="4" placeholder="Anotações do atendimento..."></textarea>
+              </label>
+            </div>
+
+            <h3 style="margin-top: 22px;">Assinatura do profissional</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Nome do profissional</span>
+                <input id="injectable-professional-name" type="text" placeholder="Nome do profissional" required />
+              </label>
+              <label class="bio-field">
+                <span>CRF</span>
+                <input id="injectable-professional-crf" type="text" placeholder="Número do CRF" required />
+              </label>
+              <label class="bio-field full">
+                <span>Assinatura manuscrita</span>
+                <div class="signature-pad-wrap">
+                  <canvas id="injectable-professional-signature-canvas" class="signature-pad" width="1200" height="180" aria-label="Assinatura do profissional"></canvas>
+                  <img id="injectable-professional-signature-preview" class="signature-preview hidden" alt="Prévia da assinatura do profissional" />
+                  <button type="button" class="signature-clear" data-clear-signature="injectable-professional-signature">Limpar assinatura</button>
+                </div>
+                <input id="injectable-professional-signature" type="hidden" />
+              </label>
+            </div>
+
+            <h3 style="margin-top: 22px;">Assinatura do paciente</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Nome do paciente</span>
+                <input id="injectable-patient-name" type="text" placeholder="Nome do paciente" required />
+              </label>
+              <label class="bio-field">
+                <span>CPF ou documento</span>
+                <input id="injectable-patient-doc" type="text" placeholder="CPF ou documento" required />
+              </label>
+              <label class="bio-field full">
+                <span>Assinatura manuscrita</span>
+                <div class="signature-pad-wrap">
+                  <canvas id="injectable-patient-signature-canvas" class="signature-pad" width="1200" height="180" aria-label="Assinatura do paciente"></canvas>
+                  <img id="injectable-patient-signature-preview" class="signature-preview hidden" alt="Prévia da assinatura do paciente" />
+                  <button type="button" class="signature-clear" data-clear-signature="injectable-patient-signature">Limpar assinatura</button>
+                </div>
+                <input id="injectable-patient-signature" type="hidden" />
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel active" data-clinical-kind="pressure">
+            <h3>Pressão Arterial</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Sistólica (mmHg)</span>
+                <input id="pressure-systolic" type="number" min="0" step="1" placeholder="Ex.: 120" required />
+              </label>
+              <label class="bio-field">
+                <span>Diastólica (mmHg)</span>
+                <input id="pressure-diastolic" type="number" min="0" step="1" placeholder="Ex.: 80" required />
+              </label>
+              <label class="bio-field full">
+                <span>Batimentos (BPM)</span>
+                <input id="pressure-heart-rate" type="number" min="0" step="1" placeholder="Ex.: 72" required />
+              </label>
+              <label class="bio-field full">
+                <span>Observações</span>
+                <textarea id="pressure-observations" rows="4" placeholder="Anotações do atendimento..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel" data-clinical-kind="glucose">
+            <h3>Glicemia</h3>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>Valor (mg/dL)</span>
+                <input id="glucose-value" type="number" min="0" step="1" placeholder="Ex.: 96" required />
+              </label>
+              <label class="bio-field">
+                <span>Tempo de Jejum</span>
+                <select id="glucose-fasting" required>
+                  <option value="Não está em jejum">Não está em jejum</option>
+                  <option value="Até 4 horas">Até 4 horas</option>
+                  <option value="4 a 8 horas">4 a 8 horas</option>
+                  <option value="Mais de 8 horas">Mais de 8 horas</option>
+                </select>
+              </label>
+              <label class="bio-field full">
+                <span>Condição</span>
+                <select id="glucose-condition" required>
+                  <option value="Não possui comorbidade">Não possui comorbidade</option>
+                  <option value="Diabetes tipo 1">Diabetes tipo 1</option>
+                  <option value="Diabetes tipo 2">Diabetes tipo 2</option>
+                  <option value="Pré-diabetes">Pré-diabetes</option>
+                </select>
+              </label>
+              <label class="bio-field full">
+                <span>Observações</span>
+                <textarea id="glucose-observations" rows="4" placeholder="Anotações do atendimento..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel" data-clinical-kind="consultation">
+            <h3>Consulta Farmacêutica</h3>
+            <div class="bio-grid">
+              <label class="bio-field full">
+                <span>Descrição do serviço</span>
+                <textarea id="service-description" rows="5" placeholder="Descreva o atendimento realizado..." required></textarea>
+              </label>
+              <label class="bio-field full">
+                <span>Observações</span>
+                <textarea id="service-observations" rows="4" placeholder="Anotações do atendimento..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="bio-panel" data-clinical-kind="dressings">
+            <h3>Curativos</h3>
+            <div class="bio-grid">
+              <label class="bio-field full">
+                <span>Descrição do serviço</span>
+                <textarea id="dressings-description" rows="5" placeholder="Descreva o curativo realizado..." required></textarea>
+              </label>
+              <label class="bio-field full">
+                <span>Observações</span>
+                <textarea id="dressings-observations" rows="4" placeholder="Anotações do atendimento..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <footer class="bio-actions">
+            <button type="button" class="button button-secondary bio-nav" id="clinical-cancel">
+              Cancelar
+            </button>
+            <button type="button" class="button button-secondary bio-nav hidden" id="clinical-save-back">
+              Salvar e voltar
+            </button>
+            <button type="button" class="button button-primary bio-save hidden" id="clinical-save-print">
+              Salvar e imprimir
+            </button>
+            <button type="submit" class="button button-primary bio-save" id="clinical-save">
+              Salvar atendimento
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="custom-date-picker hidden" id="custom-date-picker" aria-hidden="true">
+      <div class="custom-date-picker-head">
+        <button type="button" class="custom-date-nav" id="custom-date-prev" aria-label="Mês anterior">‹</button>
+        <div class="custom-date-controls">
+          <select id="custom-date-month" aria-label="Selecionar mês"></select>
+          <select id="custom-date-year" aria-label="Selecionar ano"></select>
+        </div>
+        <button type="button" class="custom-date-nav" id="custom-date-next" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="custom-date-weekdays">
+        <span>D</span>
+        <span>S</span>
+        <span>T</span>
+        <span>Q</span>
+        <span>Q</span>
+        <span>S</span>
+        <span>S</span>
+      </div>
+      <div class="custom-date-grid" id="custom-date-grid"></div>
+    </div>
+
+    <div class="modal-overlay hidden" id="doctor-lookup-modal" aria-hidden="true">
+      <div class="modal-card modal-compact" role="dialog" aria-modal="true" aria-labelledby="doctor-lookup-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.3 3.7 2.4 17.2A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.8L13.7 3.7a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" /></svg></div>
+            <div>
+              <p class="section-label">Médicos</p>
+              <h2 id="doctor-lookup-title">Médico não cadastrado</h2>
+            </div>
+          </div>
+        </header>
+        <p class="modal-copy">Médico não cadastrado.</p>
+        <footer class="modal-footer">
+          <button type="button" class="button button-primary" id="doctor-lookup-continue">Continuar</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="./public-offers/supabase-config.js"></script>
+    <script>
+      if (!window.desktopMedicineData) {
+        document.write('<script src="./bulas-medicamentos/medicine-library-raia.generated.js"><\/script>');
+        document.write('<script src="./bulas-medicamentos/medicine-library-xlsx.generated.js"><\/script>');
+        document.write('<script src="./bulas-medicamentos/ean-medicine-aliases.generated.js"><\/script>');
+      }
+    </script>
+    <script src="./main.js?v=42"></script>
+  </body>
+</html>

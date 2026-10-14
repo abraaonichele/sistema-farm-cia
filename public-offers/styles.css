@@ -1,0 +1,345 @@
+:root {
+  color: #172033;
+  background: #f4f6fa;
+  font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(244, 47, 59, 0.09), transparent 34rem),
+    linear-gradient(180deg, #fff 0, #f4f6fa 26rem);
+}
+
+.public-offer-shell {
+  width: min(100%, 1280px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(12px, 3vw, 34px) clamp(10px, 2.5vw, 28px) 32px;
+}
+
+.public-offer-header {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 18px 18px 20px;
+  text-align: center;
+}
+
+.public-offer-brand-logo {
+  display: block;
+  width: min(100%, 460px);
+  height: auto;
+  transform: perspective(900px) rotateX(3deg);
+  filter:
+    drop-shadow(0 3px 0 rgba(115, 24, 20, 0.24))
+    drop-shadow(0 11px 9px rgba(79, 34, 34, 0.22));
+}
+
+.public-offer-header h1 {
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.offer-validity {
+  display: inline-block;
+  margin-top: 7px;
+  color: #69758c;
+  font-size: 0.88rem;
+}
+
+.public-offer-viewer {
+  min-width: 0;
+}
+
+.public-offer-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: clamp(10px, 1.5vw, 18px);
+  border-radius: 22px;
+}
+
+.public-offer-gallery figure {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(31, 45, 72, 0.13);
+}
+
+.public-offer-gallery img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 82vh;
+  object-fit: contain;
+  background: #eef1f6;
+}
+
+.public-offer-gallery figure[role="button"] {
+  cursor: zoom-in;
+}
+
+.public-offer-gallery figure[role="button"]:focus-visible {
+  outline: 3px solid #e51f31;
+  outline-offset: 3px;
+}
+
+.public-offer-fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  color: #fff;
+  background: #101114;
+}
+
+.public-offer-fullscreen::backdrop {
+  background: #101114;
+}
+
+.public-offer-fullscreen-content {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+}
+
+.public-offer-fullscreen-content img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.public-offer-fullscreen-close {
+  position: fixed;
+  z-index: 1;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  display: grid;
+  width: 48px;
+  height: 48px;
+  padding: 0 0 3px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: #e51f31;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+  font: inherit;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.public-offer-fullscreen-close:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.public-offer-sheet-loading {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  color: #69758c;
+  font-weight: 700;
+}
+
+.public-offer-navigation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.public-offer-navigation button {
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid rgba(229, 31, 49, 0.18);
+  border-radius: 13px;
+  color: #b71929;
+  background: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.public-offer-navigation button:last-child {
+  justify-self: end;
+}
+
+.public-offer-navigation button:disabled {
+  color: #9ca3af;
+  border-color: #e2e8f0;
+  cursor: default;
+  opacity: 0.65;
+}
+
+.public-offer-navigation strong {
+  color: #475569;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.public-offer-pages {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.public-offer-pages button {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #cbd5e1;
+  cursor: pointer;
+}
+
+.public-offer-pages button[aria-current="true"] {
+  width: 26px;
+  border-radius: 999px;
+  background: #e51f31;
+}
+
+.public-offer-swipe-hint {
+  margin: 9px 0 0;
+  color: #7a8497;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.public-offer-status {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 72px 24px;
+  border: 1px solid rgba(214, 220, 231, 0.9);
+  border-radius: 24px;
+  color: #59667d;
+  background: rgba(255, 255, 255, 0.88);
+  text-align: center;
+}
+
+.public-offer-status p {
+  max-width: 34rem;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.loading-ring {
+  width: 34px;
+  height: 34px;
+  border: 4px solid #f6ccd0;
+  border-top-color: #e51f31;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.status-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #a43a43;
+  background: #ffebed;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.public-offer-footer {
+  padding: 24px 12px 0;
+  color: #7a8497;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (min-width: 680px) {
+  .public-offer-header {
+    padding-top: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-offer-shell {
+    padding-bottom: 22px;
+  }
+
+  .public-offer-header {
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px 4px 14px;
+  }
+
+  .public-offer-brand-logo {
+    width: min(100%, 360px);
+  }
+
+  .public-offer-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .public-offer-header h1 {
+    font-size: clamp(1.2rem, 7vw, 1.7rem);
+  }
+
+  .public-offer-gallery figure {
+    border-radius: 12px;
+  }
+
+  .public-offer-status {
+    padding: 48px 16px;
+  }
+
+  .public-offer-footer {
+    padding: 18px 4px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-ring {
+    animation: none;
+  }
+
+}

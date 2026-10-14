@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "sistema-injetaveis"
+  },
+  "targets": {
+    "sistema-injetaveis": {
+      "hosting": {
+        "offers": [
+          "farmaciaofertas"
+        ],
+        "legado": [
+          "sistema-injetaveis"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

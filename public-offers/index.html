@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f42f3b" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>Ofertas da Farmácia</title>
+    <link rel="stylesheet" href="/styles.css?v=20261012-fullscreen-sheets" />
+  </head>
+  <body>
+    <main class="public-offer-shell">
+      <header class="public-offer-header">
+        <img class="public-offer-brand-logo" src="/farmacia-superpreco-logo.png" alt="Farmácia SuperPreço" />
+        <h1 id="offer-title">Ofertas especiais</h1>
+        <span id="offer-validity" class="offer-validity hidden"></span>
+      </header>
+
+      <section class="public-offer-status" id="offer-loading" aria-live="polite">
+        <span class="loading-ring" aria-hidden="true"></span>
+        <strong>Carregando ofertas…</strong>
+      </section>
+
+      <section class="public-offer-status hidden" id="offer-error" aria-live="assertive">
+        <span class="status-icon" aria-hidden="true">!</span>
+        <strong id="offer-error-title">Oferta indisponível</strong>
+        <p id="offer-error-message">Este link pode ter expirado ou sido desativado.</p>
+      </section>
+
+      <section class="public-offer-viewer hidden" id="offer-viewer" aria-label="Folhas da oferta">
+        <div class="public-offer-gallery" id="offer-gallery" tabindex="0"></div>
+        <nav class="public-offer-navigation hidden" id="offer-navigation" aria-label="Navegação entre folhas">
+          <button id="offer-previous" type="button" aria-label="Ver folha anterior">← Anterior</button>
+          <strong id="offer-counter" aria-live="polite">Folha 1 de 1</strong>
+          <button id="offer-next" type="button" aria-label="Ver próxima folha">Próxima →</button>
+        </nav>
+        <div class="public-offer-pages hidden" id="offer-pages" aria-label="Escolher folha"></div>
+        <p class="public-offer-swipe-hint hidden" id="offer-swipe-hint">Deslize para o lado para ver as próximas folhas.</p>
+      </section>
+
+      <dialog class="public-offer-fullscreen" id="offer-fullscreen" aria-label="Encarte em tela cheia">
+        <button class="public-offer-fullscreen-close" id="offer-fullscreen-close" type="button" aria-label="Fechar tela cheia">×</button>
+        <div class="public-offer-fullscreen-content" id="offer-fullscreen-content"></div>
+      </dialog>
+
+      <footer class="public-offer-footer">
+        Consulte disponibilidade, condições e estoque diretamente com a farmácia.
+      </footer>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/supabase-config.js"></script>
+    <script src="/app.js?v=20261012-fullscreen-sheets-2"></script>
+  </body>
+</html>

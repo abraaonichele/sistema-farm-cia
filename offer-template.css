@@ -1,0 +1,514 @@
+/*
+ * Template promocional com fundos 9:16 e 1:1.
+ * Todo o layout visual fica restrito a .offer-art-template para impedir que
+ * regras genéricas do sistema alterem a composição ou a tipografia da arte.
+ */
+.offer-art-template,
+.offer-art-template * {
+  box-sizing: border-box;
+}
+
+.offer-art-template.offer-poster,
+.offer-art-template.offer-poster.has-image {
+  position: relative;
+  isolation: isolate;
+  container-type: size;
+  display: block;
+  width: min(100%, 520px);
+  aspect-ratio: var(--offer-canvas-ratio, 4 / 5);
+  min-height: 0;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #bd000c;
+  box-shadow: 0 24px 58px rgba(103, 0, 10, .27);
+  color: #a90012;
+  font-family: Arial, Helvetica, sans-serif;
+  font-style: normal;
+  font-variant: normal;
+  text-align: center;
+}
+
+.offer-art-template.offer-poster::before,
+.offer-art-template.offer-poster::after,
+.offer-art-template .offer-poster-header::before,
+.offer-art-template .offer-poster-header::after {
+  display: none;
+  content: none;
+}
+
+.offer-art-template .offer-art-canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  container-type: size;
+}
+
+.offer-art-template .offer-template-svg,
+.offer-art-template .offer-template-image {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  object-position: center;
+  pointer-events: none;
+}
+
+.offer-art-template .offer-poster-header {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.offer-art-template .offer-poster-header > div {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.offer-art-template .offer-poster-header > div::after {
+  display: none;
+  content: none;
+}
+
+.offer-art-template .offer-poster-header > div > .offer-special-lead {
+  position: absolute;
+  z-index: 3;
+  top: 2.65%;
+  left: 14.8%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70.4%;
+  height: 10%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  color: var(--offer-top-text-color, #fff);
+  background: transparent;
+  font-family: "Arial Black", Impact, Arial, sans-serif;
+  font-size: var(--offer-top-font-size, 6.26cqw);
+  font-weight: 900;
+  line-height: .82;
+  letter-spacing: -.065em;
+  text-align: center;
+  text-shadow: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translate(var(--offer-top-x, 0cqw), var(--offer-top-y, 0cqw)) rotate(var(--offer-top-tilt, 0deg));
+  transform-origin: center;
+}
+
+.offer-art-template .offer-poster-header > div > .offer-special-band:not(.hidden) {
+  position: absolute;
+  z-index: 3;
+  top: calc(12.45% + var(--offer-title-band-y, 0cqw));
+  left: calc(50% + var(--offer-title-band-x, 0cqw));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--offer-title-band-width, 72.2%);
+  height: var(--offer-title-band-height, 9.55%);
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0 2.3%;
+  border: 0;
+  border-radius: 4.15cqw;
+  color: var(--offer-band-text-color, #a90012);
+  background: var(--offer-badge-background, #ffdf35);
+  box-shadow: none;
+  font-family: "Arial Black", Impact, Arial, sans-serif;
+  font-size: var(--offer-band-font-size, 7.31cqw);
+  font-weight: 900;
+  line-height: .88;
+  letter-spacing: -.055em;
+  text-align: center;
+  text-shadow: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transform-origin: center;
+}
+
+.offer-art-template .offer-poster-image,
+.offer-art-template.offer-poster.is-background-removed .offer-poster-image {
+  position: absolute;
+  z-index: 3;
+  top: 22.25%;
+  left: 23.15%;
+  display: grid;
+  place-items: end center;
+  width: 53.7%;
+  height: 46.4%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.offer-art-template .offer-poster-image.hidden {
+  display: none !important;
+}
+
+.offer-art-template .offer-poster-image > img {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: none;
+  transform: translate(var(--product-x, 0), var(--product-y, 0)) scale(var(--product-scale, 1));
+  transform-origin: center bottom;
+  transition: transform 150ms ease;
+}
+
+.offer-art-template .offer-product-shadow {
+  position: absolute;
+  z-index: 1;
+  left: calc(50% + var(--shadow-x, 0px));
+  bottom: calc(1.7% - var(--shadow-y, 0px));
+  width: 53%;
+  height: 4.7%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(42, 18, 10, .48) 0%, rgba(76, 43, 25, .24) 46%, transparent 78%);
+  filter: blur(.7cqw);
+  transform: translateX(-50%) scaleX(var(--shadow-scale, 1)) scaleY(var(--shadow-height-scale, 1));
+  transform-origin: center;
+}
+
+.offer-art-template .offer-preview-placeholder {
+  display: none !important;
+}
+
+.offer-art-template .offer-poster-content,
+.offer-art-template.offer-poster:not(.has-image) .offer-poster-content {
+  position: static;
+  display: block;
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.offer-art-template .offer-poster-content h4 {
+  position: absolute;
+  z-index: 5;
+  top: 68.5%;
+  left: 8.5%;
+  display: block;
+  width: 83%;
+  max-height: 7.2%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: var(--offer-product-name-color, #a90012);
+  font-family: "Arial Black", Impact, Arial, sans-serif;
+  font-size: var(--offer-name-font-size, 4.70cqw);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -.052em;
+  text-align: center;
+  text-shadow: none;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.offer-art-template .offer-preview-description {
+  position: absolute;
+  z-index: 5;
+  top: 75.15%;
+  left: 12%;
+  display: block;
+  width: 76%;
+  max-width: none;
+  max-height: 4.5%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: #760711;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--offer-description-font-size, 3.48cqw);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -.02em;
+  text-align: center;
+  text-shadow: none;
+  white-space: pre-line;
+}
+
+.offer-art-template .offer-preview-prices {
+  position: absolute;
+  z-index: 6;
+  top: 80.96%;
+  left: 4.72%;
+  display: block;
+  width: 90.56%;
+  height: 16.3%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.offer-art-template .offer-preview-prices.hidden {
+  display: none !important;
+}
+
+.offer-art-template .offer-preview-prices > span {
+  position: absolute;
+  top: calc(48% + var(--offer-original-y, 0cqw));
+  left: calc(4.7% + var(--offer-original-x, 0cqw));
+  display: block;
+  width: 29%;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  color: var(--offer-original-price-color, #fff);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--offer-original-price-font-size, 3.13cqw);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -.03em;
+  text-align: center;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.offer-art-template .offer-preview-prices > div:not(.hidden) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  inset: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translate(var(--offer-discount-x, 0cqw), var(--offer-discount-y, 0cqw));
+  transform-origin: center;
+}
+
+.offer-art-template .offer-preview-prices small {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(47.25% * var(--offer-price-label-width-scale, 1));
+  height: calc(29.1% * var(--offer-price-label-height-scale, 1));
+  margin: 0;
+  padding: 0;
+  color: #a90012;
+  background: transparent;
+  font-family: "Arial Black", Impact, Arial, sans-serif;
+  font-size: var(--offer-price-label-font-size, 3.13cqw);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -.025em;
+  text-align: center;
+  text-shadow: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translate(-50%, -43.5%);
+}
+
+.offer-art-template .offer-preview-prices strong {
+  position: absolute;
+  top: 35%;
+  left: 31%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 66%;
+  margin: 0;
+  padding: 0;
+  color: var(--offer-discount-price-color, #ffdf35);
+  font-family: "Arial Black", Impact, Arial, sans-serif;
+  font-size: var(--offer-discount-price-font-size, 5.92cqw);
+  font-weight: 900;
+  line-height: .82;
+  letter-spacing: -.072em;
+  text-align: center;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.offer-art-template .offer-preview-prices:not(.has-original) > div:not(.hidden) strong {
+  left: 14%;
+  width: 72%;
+}
+
+.offer-art-template.offer-poster footer {
+  position: absolute;
+  z-index: 7;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25%;
+  margin: 0;
+  padding: .35% 5%;
+  border: 0;
+  color: #fff;
+  background: rgba(105, 0, 8, .76);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: min(1.35cqw, 1.08cqh);
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.offer-art-template.is-story-layout .offer-poster-header > div > .offer-special-lead {
+  top: calc(16% + var(--offer-top-y, 0cqw));
+  left: calc(40% + var(--offer-top-x, 0cqw));
+  width: 40%;
+  height: 6.5%;
+  font-size: var(--offer-top-font-size, 6.26cqw);
+  transform: rotate(var(--offer-top-tilt, -7deg));
+}
+
+.offer-art-template.is-story-layout .offer-poster-header > div > .offer-special-band:not(.hidden) {
+  top: calc(23% + var(--offer-title-band-y, 0cqw));
+  left: calc(64% + var(--offer-title-band-x, 0cqw));
+  width: calc(38% * var(--offer-title-band-width-scale, 1));
+  height: calc(7.2% * var(--offer-title-band-height-scale, 1));
+  border-radius: 5cqw;
+  font-size: var(--offer-band-font-size, 7.31cqw);
+  transform: translateX(-50%) rotate(var(--offer-band-tilt, -7deg));
+}
+
+.offer-art-template.is-story-layout .offer-poster-image,
+.offer-art-template.is-story-layout.offer-poster.is-background-removed .offer-poster-image {
+  top: 43.5%;
+  left: 4%;
+  width: 47%;
+  height: 36.5%;
+}
+
+.offer-art-template.is-story-layout .offer-poster-content h4 {
+  top: calc(82.5% + var(--offer-name-y, 0cqw));
+  left: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(80% * var(--offer-name-width-scale, 1));
+  height: calc(6% * var(--offer-name-height-scale, 1));
+  max-height: none;
+  padding: 0 3%;
+  border-radius: 4cqw;
+  background: #ffdf35;
+  font-size: var(--offer-name-font-size, 4.70cqw);
+  transform: translate(var(--offer-name-x, 0cqw), 0);
+  transform-origin: center;
+}
+
+.offer-art-template.is-story-layout .offer-preview-description {
+  top: calc(89% + var(--offer-description-y, 0cqw));
+  left: calc(10% + var(--offer-description-x, 0cqw));
+  width: 80%;
+  max-height: 8%;
+  color: var(--offer-description-color, #fff);
+  font-size: var(--offer-description-font-size, 3.48cqw);
+  transform-origin: center top;
+}
+
+.offer-art-template.is-story-layout .offer-preview-prices {
+  top: 54%;
+  left: 49%;
+  width: 34%;
+  height: 24%;
+  transform: translate(var(--offer-prices-x, 0cqw), var(--offer-prices-y, 0cqw));
+  transform-origin: center;
+}
+
+.offer-art-template.is-story-layout .offer-preview-prices > span {
+  top: calc(5% + var(--offer-original-y, 0cqw));
+  left: var(--offer-original-x, 0cqw);
+  width: 100%;
+  height: 30%;
+  color: var(--offer-original-price-color, #a90012);
+  font-size: var(--offer-original-price-font-size, 3.13cqw);
+  font-weight: 700;
+}
+
+.offer-art-template.is-story-layout .offer-preview-prices small {
+  top: 29%;
+  left: 50%;
+  width: calc(100% * var(--offer-price-label-width-scale, 1));
+  height: calc(23% * var(--offer-price-label-height-scale, 1));
+  color: #a90012;
+  background: var(--offer-price-label-background, #ffdf35);
+  font-size: var(--offer-price-label-font-size, 3.13cqw);
+  transform: translate(-50%, 0);
+}
+
+.offer-art-template.is-story-layout .offer-preview-prices > div:not(.hidden) {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.offer-art-template.is-story-layout .offer-preview-prices strong,
+.offer-art-template.is-story-layout .offer-preview-prices:not(.has-original) > div:not(.hidden) strong {
+  top: 55%;
+  left: 0;
+  width: 100%;
+  color: var(--offer-discount-price-color, #a90012);
+  font-size: var(--offer-discount-price-font-size, 5.92cqw);
+}
+
+.offer-art-template .hidden,
+.offer-art-template footer.hidden {
+  display: none !important;
+}
+
+@media (max-width: 1040px) {
+  .offer-art-template.offer-poster,
+  .offer-art-template.offer-poster.has-image {
+    width: min(100%, 520px);
+  }
+}

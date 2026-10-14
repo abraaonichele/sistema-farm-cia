@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.firebase/
+.DS_Store
+
+# Do not publish medicine leaflets or derived medicine databases.
+/bulas-medicamentos/**/*.pdf
+/bulas-medicamentos/*.pdf
+/bulas-medicamentos/*.generated.js
+/bulas-medicamentos/*.json
+/bulas-medicamentos/*.json.gz
+/bulas-medicamentos/*.xlsx
+/bulas-medicamentos/*.rtf
+/bulas-medicamentos/*.txt
+/bulas-medicamentos/*.log
