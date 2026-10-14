@@ -712,8 +712,14 @@
     accountEmail: document.getElementById("account-email"),
     accountCpf: document.getElementById("account-cpf"),
     accountCrf: document.getElementById("account-crf"),
-    checkAppUpdates: document.getElementById("check-app-updates"),
-    appUpdateStatus: document.getElementById("app-update-status"),
+    checkAppUpdates: [
+      document.getElementById("check-app-updates"),
+      document.getElementById("check-app-updates-menu"),
+    ],
+    appUpdateStatus: [
+      document.getElementById("app-update-status"),
+      document.getElementById("app-update-menu-status"),
+    ],
     doctorsModal: document.getElementById("doctors-modal"),
     closeDoctors: document.getElementById("close-doctors"),
     doctorsForm: document.getElementById("doctors-form"),
@@ -7214,24 +7220,34 @@
   });
 
   let updateProgressUnsubscribe = null;
-  elements.checkAppUpdates.addEventListener("click", async () => {
+  async function checkAppUpdates() {
     const updater = window.desktopAppUpdates;
     if (!updater) {
-      elements.appUpdateStatus.textContent = "A atualização automática está disponível apenas no aplicativo instalado para Windows.";
+      elements.appUpdateStatus.forEach((status) => {
+        status.textContent = "A atualização automática está disponível apenas no aplicativo instalado para Windows.";
+      });
       return;
     }
 
-    elements.checkAppUpdates.disabled = true;
-    elements.checkAppUpdates.textContent = "Verificando...";
-    elements.appUpdateStatus.textContent = "Consultando a versão mais recente...";
+    elements.checkAppUpdates.forEach((button) => {
+      button.disabled = true;
+      button.textContent = "Verificando...";
+    });
+    elements.appUpdateStatus.forEach((status) => {
+      status.textContent = "Consultando a versão mais recente...";
+    });
     try {
       const result = await updater.checkForUpdates();
       if (result.status === "unsupported") {
-        elements.appUpdateStatus.textContent = "A atualização automática está disponível apenas no aplicativo instalado para Windows.";
+        elements.appUpdateStatus.forEach((status) => {
+          status.textContent = "A atualização automática está disponível apenas no aplicativo instalado para Windows.";
+        });
         return;
       }
       if (!result.updateAvailable) {
-        elements.appUpdateStatus.textContent = `Você já está usando a versão mais recente (${result.currentVersion}).`;
+        elements.appUpdateStatus.forEach((status) => {
+          status.textContent = `Você já está usando a versão mais recente (${result.currentVersion}).`;
+        });
         return;
       }
 
@@ -7239,33 +7255,50 @@
         `A versão ${result.version} está disponível. A versão instalada é ${result.currentVersion}. Deseja baixar e instalar agora?`,
       );
       if (!shouldUpdate) {
-        elements.appUpdateStatus.textContent = "Atualização disponível. Você pode instalá-la quando quiser.";
+        elements.appUpdateStatus.forEach((status) => {
+          status.textContent = "Atualização disponível. Você pode instalá-la quando quiser.";
+        });
         return;
       }
 
-      elements.checkAppUpdates.textContent = "Baixando...";
-      elements.appUpdateStatus.textContent = "Baixando a atualização...";
+      elements.checkAppUpdates.forEach((button) => {
+        button.textContent = "Baixando...";
+      });
+      elements.appUpdateStatus.forEach((status) => {
+        status.textContent = "Baixando a atualização...";
+      });
       updateProgressUnsubscribe?.();
       updateProgressUnsubscribe = updater.onDownloadProgress(({ percent }) => {
-        elements.appUpdateStatus.textContent = `Baixando atualização: ${percent}%`;
+        elements.appUpdateStatus.forEach((status) => {
+          status.textContent = `Baixando atualização: ${percent}%`;
+        });
       });
       await updater.downloadUpdate();
       updateProgressUnsubscribe();
       updateProgressUnsubscribe = null;
-      elements.appUpdateStatus.textContent = "Download concluído. O aplicativo será reiniciado para concluir a atualização.";
+      elements.appUpdateStatus.forEach((status) => {
+        status.textContent = "Download concluído. O aplicativo será reiniciado para concluir a atualização.";
+      });
       await updater.installUpdate();
     } catch (error) {
       console.error("Erro ao verificar ou instalar atualizações:", error);
       updateProgressUnsubscribe?.();
       updateProgressUnsubscribe = null;
       const reason = String(error?.message || error).trim().slice(0, 240);
-      elements.appUpdateStatus.textContent = reason
-        ? `Não foi possível concluir a atualização: ${reason}`
-        : "Não foi possível concluir a atualização. Confira sua conexão e tente novamente.";
+      elements.appUpdateStatus.forEach((status) => {
+        status.textContent = reason
+          ? `Não foi possível concluir a atualização: ${reason}`
+          : "Não foi possível concluir a atualização. Confira sua conexão e tente novamente.";
+      });
     } finally {
-      elements.checkAppUpdates.disabled = false;
-      elements.checkAppUpdates.textContent = "Verificar atualização";
+      elements.checkAppUpdates.forEach((button) => {
+        button.disabled = false;
+        button.textContent = "Verificar atualização";
+      });
     }
+  }
+  elements.checkAppUpdates.forEach((button) => {
+    button.addEventListener("click", checkAppUpdates);
   });
 
   elements.openDoctors.addEventListener("click", () => {
