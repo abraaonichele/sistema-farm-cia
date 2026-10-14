@@ -1,10 +1,37 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
+const { ElectronHttpExecutor } = require("electron-updater/out/electronHttpExecutor");
 const fs = require("fs/promises");
+const https = require("https");
 const path = require("path");
 
 let availableUpdateVersion = "";
 let downloadedUpdateReady = false;
+let usingNodeTlsForUpdates = false;
+
+class NodeTlsHttpExecutor extends ElectronHttpExecutor {
+  createRequest(options, callback) {
+    const requestOptions = {
+      ...options,
+      headers: options.headers ? { ...options.headers } : undefined,
+    };
+    delete requestOptions.redirect;
+    delete requestOptions.session;
+
+    const hostHeader = requestOptions.headers?.Host || requestOptions.headers?.host;
+    if (hostHeader) {
+      requestOptions.hostname = hostHeader;
+      delete requestOptions.headers.Host;
+      delete requestOptions.headers.host;
+    }
+
+    if (requestOptions.protocol !== "https:") {
+      throw new Error(`O atualizador recusou uma conexão não segura: ${requestOptions.protocol || "protocolo ausente"}`);
+    }
+
+    return https.request(requestOptions, callback);
+  }
+}
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
@@ -31,7 +58,38 @@ function registerAppUpdateHandlers() {
       };
     }
 
-    const result = await autoUpdater.checkForUpdates();
+    let result;
+    try {
+      result = await autoUpdater.checkForUpdates();
+    } catch (error) {
+      const errorText = `${error?.code || ""} ${error?.message || error}`;
+      if (usingNodeTlsForUpdates || !/ERR_CERT_AUTHORITY_INVALID|CERT_AUTHORITY_INVALID/i.test(errorText)) {
+        throw error;
+      }
+
+      console.warn("A validação TLS do Electron falhou; tentando novamente com TLS padrão do Node.js.", error);
+      usingNodeTlsForUpdates = true;
+      autoUpdater.httpExecutor = new NodeTlsHttpExecutor();
+      autoUpdater.setFeedURL({
+        provider: "github",
+        owner: "abraaonichele",
+        repo: "sistema-farm-cia",
+        releaseType: "release",
+      });
+
+      try {
+        result = await autoUpdater.checkForUpdates();
+      } catch (fallbackError) {
+        const fallbackMessage = String(fallbackError?.message || fallbackError).trim().slice(0, 300);
+        throw new Error(
+          `O Windows não conseguiu validar o certificado HTTPS do servidor de atualização. ` +
+          `A segunda tentativa segura também falhou: ${fallbackMessage}. ` +
+          `Confira a data e hora do Windows, instale as atualizações de certificados do Windows e tente novamente.`,
+          { cause: fallbackError },
+        );
+      }
+    }
+
     availableUpdateVersion = result?.isUpdateAvailable ? result.updateInfo.version : "";
     downloadedUpdateReady = false;
     return {
