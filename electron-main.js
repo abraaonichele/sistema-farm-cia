@@ -1,48 +1,64 @@
 const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
 const fs = require("fs/promises");
 const path = require("path");
-const { fetchTrierProducts, normalizeTrierBaseUrl, TRIER_DEFAULT_BASE_URL } = require("./trier-products.cjs");
+const {
+  fetchTrierProducts,
+  loadTrierProductCache,
+  normalizeTrierBaseUrl,
+  saveTrierProductCache,
+  TRIER_DEFAULT_BASE_URL,
+} = require("./trier-products.cjs");
 
 let trierProductsCache = null;
 let trierProductsCacheAt = 0;
+let trierProductsCacheBaseUrl = "";
+let trierProductsCacheLoaded = false;
+let trierProductsCacheLoadPromise = null;
 let trierProductsFetchPromise = null;
 let trierSyncInterval = null;
 let trierSyncInProgress = false;
+let trierLastSyncError = "";
 
 const TRIER_CACHE_DURATION_MS = 5 * 60 * 1000;
+const LEGACY_LOCAL_TRIER_BASE_URL = "http://localhost:4647/sgfpod1";
+const PREVIOUS_UNREACHABLE_TRIER_BASE_URL = "http://192.168.1.25:4647/sgfpod1";
 
 function getTrierConfigPath() {
   return path.join(app.getPath("userData"), "trier-integration.json");
 }
 
-function getBundledTrierConfigPath() {
-  return path.join(process.resourcesPath, "trier-bootstrap.json");
-}
-
-async function readBundledTrierConfig() {
-  try {
-    const bundled = JSON.parse(await fs.readFile(getBundledTrierConfigPath(), "utf8"));
-    return {
-      baseUrl: String(bundled?.baseUrl || "").trim(),
-      token: String(bundled?.token || "").trim(),
-    };
-  } catch (error) {
-    if (error?.code !== "ENOENT") console.warn("Não foi possível ler o provisionamento da Trier.", error);
-    return { baseUrl: "", token: "" };
-  }
+function getTrierProductsCachePath() {
+  return path.join(app.getPath("userData"), "trier-products-cache.json");
 }
 
 async function writeEncryptedTrierConfig(baseUrl, token) {
+  const normalizedBaseUrl = normalizeTrierBaseUrl(baseUrl);
+  if (String(token).trim().length > 8192) {
+    throw new Error("O token da Trier excede o tamanho permitido.");
+  }
   if (!safeStorage.isEncryptionAvailable()) {
     throw new Error("A criptografia segura do sistema não está disponível neste computador.");
   }
   const config = {
-    baseUrl: normalizeTrierBaseUrl(baseUrl),
+    baseUrl: normalizedBaseUrl,
     encryptedToken: safeStorage.encryptString(token).toString("base64"),
     updatedAt: new Date().toISOString(),
   };
   await fs.mkdir(path.dirname(getTrierConfigPath()), { recursive: true });
-  await fs.writeFile(getTrierConfigPath(), `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+  const configPath = getTrierConfigPath();
+  const temporaryPath = `${configPath}.${process.pid}.tmp`;
+  try {
+    await fs.writeFile(temporaryPath, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+    await fs.rename(temporaryPath, configPath);
+    if (process.platform !== "win32") await fs.chmod(configPath, 0o600);
+  } catch (error) {
+    try {
+      await fs.rm(temporaryPath, { force: true });
+    } catch (cleanupError) {
+      console.error("Não foi possível limpar a configuração temporária da Trier:", cleanupError);
+    }
+    throw error;
+  }
   return config;
 }
 
@@ -54,8 +70,6 @@ async function readTrierConfig() {
     if (error?.code !== "ENOENT") console.warn("Não foi possível ler a configuração da Trier.", error);
   }
 
-  const bundled = await readBundledTrierConfig();
-  const environmentToken = String(process.env.TRIER_API_TOKEN || "").trim();
   let storedToken = "";
   if (stored.encryptedToken && safeStorage.isEncryptionAvailable()) {
     try {
@@ -65,19 +79,20 @@ async function readTrierConfig() {
     }
   }
 
-  const storedBaseUrl = stored.baseUrl && stored.baseUrl !== TRIER_DEFAULT_BASE_URL
-    ? stored.baseUrl
-    : bundled.baseUrl || stored.baseUrl;
+  const isLegacyBaseUrl = [LEGACY_LOCAL_TRIER_BASE_URL, PREVIOUS_UNREACHABLE_TRIER_BASE_URL]
+    .includes(stored.baseUrl);
   const baseUrl = normalizeTrierBaseUrl(
-    process.env.TRIER_API_BASE_URL || storedBaseUrl || TRIER_DEFAULT_BASE_URL,
+    process.env.TRIER_API_BASE_URL
+      || (!isLegacyBaseUrl && stored.baseUrl)
+      || TRIER_DEFAULT_BASE_URL,
   );
-  const token = environmentToken || storedToken || bundled.token;
+  const token = storedToken;
 
-  if (!environmentToken && !storedToken && bundled.token) {
+  if (isLegacyBaseUrl && storedToken) {
     try {
-      await writeEncryptedTrierConfig(baseUrl, bundled.token);
+      await writeEncryptedTrierConfig(baseUrl, storedToken);
     } catch (error) {
-      console.warn("Não foi possível proteger o token provisionado da Trier.", error);
+      console.error("Não foi possível atualizar o endereço Trier salvo neste computador:", error);
     }
   }
 
@@ -94,17 +109,60 @@ async function saveTrierConfig({ baseUrl, token }) {
   const config = await writeEncryptedTrierConfig(baseUrl || current.baseUrl, nextToken);
   trierProductsCache = null;
   trierProductsCacheAt = 0;
+  trierProductsCacheBaseUrl = "";
+  trierProductsCacheLoaded = false;
+  trierProductsCacheLoadPromise = null;
+  trierLastSyncError = "";
   return { baseUrl: config.baseUrl, configured: true };
 }
 
+async function loadTrierProductsCache(baseUrl) {
+  if (trierProductsCacheLoaded && trierProductsCacheBaseUrl === baseUrl) return;
+  if (trierProductsCacheLoadPromise) return trierProductsCacheLoadPromise;
+  trierProductsCache = null;
+  trierProductsCacheAt = 0;
+  trierProductsCacheBaseUrl = baseUrl;
+  trierProductsCacheLoadPromise = (async () => {
+    try {
+      const cache = await loadTrierProductCache(getTrierProductsCachePath(), baseUrl);
+      if (cache) {
+        trierProductsCache = cache.products;
+        trierProductsCacheAt = Date.parse(cache.syncedAt);
+      }
+    } catch (error) {
+      console.error("Não foi possível carregar o cache salvo da Trier:", error);
+    } finally {
+      trierProductsCacheLoaded = true;
+    }
+  })();
+  try {
+    await trierProductsCacheLoadPromise;
+  } finally {
+    trierProductsCacheLoadPromise = null;
+  }
+}
+
 async function fetchAllTrierProducts(forceRefresh = false) {
-  if (!forceRefresh && trierProductsCache && Date.now() - trierProductsCacheAt < TRIER_CACHE_DURATION_MS) {
-    return { products: trierProductsCache, cached: true, syncedAt: new Date(trierProductsCacheAt).toISOString() };
+  const config = await readTrierConfig();
+  await loadTrierProductsCache(config.baseUrl);
+  if (!forceRefresh && trierProductsCache) {
+    const cachedResult = {
+      products: trierProductsCache,
+      cached: true,
+      syncedAt: new Date(trierProductsCacheAt).toISOString(),
+      refreshing: Date.now() - trierProductsCacheAt >= TRIER_CACHE_DURATION_MS,
+      syncError: trierLastSyncError,
+    };
+    if (Date.now() - trierProductsCacheAt >= TRIER_CACHE_DURATION_MS) {
+      void fetchAllTrierProducts(true).catch((error) => {
+        console.error("Não foi possível atualizar o cache Trier em segundo plano:", error);
+      });
+    }
+    return cachedResult;
   }
   if (trierProductsFetchPromise) return trierProductsFetchPromise;
 
   trierProductsFetchPromise = (async () => {
-    const config = await readTrierConfig();
     if (!config.token) {
       const error = new Error("O token da Trier não está disponível para a sincronização automática.");
       error.code = "TRIER_NOT_CONFIGURED";
@@ -112,9 +170,25 @@ async function fetchAllTrierProducts(forceRefresh = false) {
     }
 
     const products = await fetchTrierProducts(config);
+    const syncedAt = new Date().toISOString();
+    trierLastSyncError = "";
     trierProductsCache = products;
-    trierProductsCacheAt = Date.now();
-    return { products, cached: false, syncedAt: new Date(trierProductsCacheAt).toISOString() };
+    trierProductsCacheAt = Date.parse(syncedAt);
+    trierProductsCacheBaseUrl = config.baseUrl;
+
+    let cacheError = "";
+    try {
+      await saveTrierProductCache(getTrierProductsCachePath(), {
+        products,
+        syncedAt,
+        baseUrl: config.baseUrl,
+      });
+    } catch (error) {
+      cacheError = `Produtos carregados, mas não foi possível salvar o catálogo neste computador: ${error.message}`;
+      console.error("Não foi possível salvar o cache da Trier:", error);
+    }
+
+    return { products, cached: false, syncedAt, cacheError };
   })();
 
   try {
@@ -146,9 +220,10 @@ async function syncTrierProductsAutomatically() {
     const result = await fetchAllTrierProducts(true);
     broadcastTrierEvent("trier:products-updated", result);
   } catch (error) {
+    trierLastSyncError = error?.message || "Não foi possível atualizar o catálogo da Trier.";
     console.error("Erro na sincronização automática da Trier:", error);
     broadcastTrierEvent("trier:sync-error", {
-      message: error?.message || "Não foi possível atualizar os produtos da Trier.",
+      message: trierLastSyncError,
       occurredAt: new Date().toISOString(),
     });
   } finally {

@@ -1,9 +1,13 @@
 const http = require("http");
 const https = require("https");
+const fs = require("fs/promises");
+const path = require("path");
 
-const TRIER_DEFAULT_BASE_URL = "http://localhost:4647/sgfpod1";
+const TRIER_DEFAULT_BASE_URL = "https://api-sgf-gateway.triersistemas.com.br/sgfpod1";
 const TRIER_PAGE_SIZE = 500;
 const TRIER_MAX_PRODUCTS = 200_000;
+const TRIER_CACHE_SCHEMA_VERSION = 1;
+const TRIER_CACHE_MAX_BYTES = 100 * 1024 * 1024;
 
 function normalizeTrierBaseUrl(value) {
   const rawValue = String(value || TRIER_DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
@@ -15,6 +19,9 @@ function normalizeTrierBaseUrl(value) {
   }
   if (!["http:", "https:"].includes(parsed.protocol)) {
     throw new Error("A API Trier precisa usar um endereço HTTP ou HTTPS.");
+  }
+  if (parsed.protocol === "http:" && !["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)) {
+    throw new Error("Use HTTPS para enviar o token da Trier a um servidor remoto.");
   }
   return parsed.toString().replace(/\/+$/, "");
 }
@@ -121,8 +128,87 @@ async function fetchTrierProducts(config, options = {}) {
   throw new Error(`A sincronização excedeu o limite de ${maxProducts} produtos.`);
 }
 
+async function loadTrierProductCache(cachePath, expectedBaseUrl) {
+  let cacheFile;
+  try {
+    cacheFile = await fs.open(cachePath, "r");
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+
+  try {
+    const info = await cacheFile.stat();
+    if (!info.isFile() || info.size > TRIER_CACHE_MAX_BYTES) {
+      throw new Error("O cache local de produtos da Trier é inválido ou excede o limite permitido.");
+    }
+    const cache = JSON.parse(await cacheFile.readFile("utf8"));
+    const baseUrl = normalizeTrierBaseUrl(cache?.baseUrl);
+    const syncedAt = typeof cache?.syncedAt === "string" ? cache.syncedAt : "";
+    if (cache?.schemaVersion !== TRIER_CACHE_SCHEMA_VERSION
+      || !Number.isFinite(Date.parse(syncedAt))
+      || !Array.isArray(cache.products)
+      || cache.products.length > TRIER_MAX_PRODUCTS
+      || !cache.products.every(isSanitizedTrierProduct)) {
+      throw new Error("O cache local da Trier está inválido.");
+    }
+    if (baseUrl !== normalizeTrierBaseUrl(expectedBaseUrl)) return null;
+    return { products: cache.products, syncedAt, baseUrl };
+  } finally {
+    await cacheFile.close();
+  }
+}
+
+async function saveTrierProductCache(cachePath, { products, syncedAt, baseUrl }) {
+  if (!Array.isArray(products) || products.length > TRIER_MAX_PRODUCTS) {
+    throw new Error("A lista de produtos da Trier não pode ser armazenada no cache.");
+  }
+  const cache = {
+    schemaVersion: TRIER_CACHE_SCHEMA_VERSION,
+    baseUrl: normalizeTrierBaseUrl(baseUrl),
+    syncedAt,
+    products,
+  };
+  const serialized = `${JSON.stringify(cache)}\n`;
+  if (Buffer.byteLength(serialized, "utf8") > TRIER_CACHE_MAX_BYTES) {
+    throw new Error("O catálogo de produtos da Trier excede o limite permitido para o cache local.");
+  }
+
+  await fs.mkdir(path.dirname(cachePath), { recursive: true, mode: 0o700 });
+  const temporaryPath = `${cachePath}.${process.pid}.tmp`;
+  try {
+    await fs.writeFile(temporaryPath, serialized, { mode: 0o600 });
+    await fs.rename(temporaryPath, cachePath);
+    if (process.platform !== "win32") await fs.chmod(cachePath, 0o600);
+  } catch (error) {
+    try {
+      await fs.rm(temporaryPath, { force: true });
+    } catch (cleanupError) {
+      console.error("Não foi possível limpar o arquivo temporário do cache Trier:", cleanupError);
+    }
+    throw error;
+  }
+}
+
+function isSanitizedTrierProduct(product) {
+  return product !== null
+    && typeof product === "object"
+    && typeof product.code === "string"
+    && typeof product.barcode === "string"
+    && typeof product.name === "string"
+    && typeof product.unit === "string"
+    && Number.isFinite(product.stock)
+    && Number.isFinite(product.salePrice)
+    && (product.costPrice === null || Number.isFinite(product.costPrice))
+    && (product.averageCost === null || Number.isFinite(product.averageCost))
+    && typeof product.laboratory === "string"
+    && typeof product.active === "boolean";
+}
+
 module.exports = {
   TRIER_DEFAULT_BASE_URL,
   fetchTrierProducts,
+  loadTrierProductCache,
   normalizeTrierBaseUrl,
+  saveTrierProductCache,
 };

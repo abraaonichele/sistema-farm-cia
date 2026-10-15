@@ -6358,9 +6358,9 @@ body .medicines-empty-state {
 
 .trier-config-panel {
   display: grid;
-  grid-template-columns: minmax(220px, .7fr) minmax(580px, 2fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
-  gap: 24px;
+  gap: 16px;
   margin-bottom: 18px;
   padding: 20px;
   border: 1px solid rgba(36, 76, 138, 0.14);
@@ -6369,12 +6369,20 @@ body .medicines-empty-state {
   box-shadow: 0 10px 30px rgba(26, 48, 82, 0.06);
 }
 
+.trier-config-panel > div:first-child,
+.trier-config-actions {
+  grid-column: 1 / -1;
+}
+
 .trier-config-panel.hidden {
   display: none;
 }
 
-.trier-config-panel h3 {
-  margin: 0 0 5px;
+.trier-config-panel strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text);
+  font-size: 1rem;
 }
 
 .trier-config-panel p {
@@ -6384,14 +6392,42 @@ body .medicines-empty-state {
   line-height: 1.5;
 }
 
-.trier-config-form {
-  display: grid;
-  grid-template-columns: minmax(260px, 1.2fr) minmax(260px, 1fr) auto;
-  align-items: end;
-  gap: 12px;
+.trier-config-panel .field {
+  margin: 0;
 }
 
-.trier-config-form .field,
+.trier-config-panel .field > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.trier-config-panel input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  background: #fff;
+}
+
+.trier-config-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.trier-config-actions p {
+  flex: 1;
+  min-width: 0;
+}
+
 .quote-product-form .field,
 .quote-summary-card .field {
   margin: 0;
@@ -6425,7 +6461,6 @@ body .medicines-empty-state {
 }
 
 .quote-product-form .field > span,
-.trier-config-form .field > span,
 .quote-summary-card .field > span {
   display: block;
   margin-bottom: 7px;
@@ -6437,7 +6472,7 @@ body .medicines-empty-state {
 }
 
 .quote-product-form input,
-.trier-config-form input {
+.trier-config-panel input {
   min-height: 49px;
 }
 
@@ -6818,9 +6853,13 @@ body .medicines-empty-state {
 
 @media (max-width: 1180px) {
   .trier-config-panel,
-  .trier-config-form,
   .whatsapp-quote-layout {
     grid-template-columns: 1fr;
+  }
+
+  .trier-config-panel > div:first-child,
+  .trier-config-actions {
+    grid-column: auto;
   }
 
   .quote-summary-card {
@@ -6847,6 +6886,11 @@ body .medicines-empty-state {
 
   .whatsapp-quote-header-actions {
     justify-content: flex-start;
+  }
+
+  .trier-config-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .quote-product-form,

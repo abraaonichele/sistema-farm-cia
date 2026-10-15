@@ -8,22 +8,15 @@ Abra o `index.html` em um navegador moderno.
 
 ## Atualizações do aplicativo
 
-As atualizações são instaladas manualmente pelo instalador do Windows. Não há verificação ou instalação automática dentro do aplicativo, nem publicação automática de versões ao enviar alterações ao GitHub. Para gerar o instalador localmente, execute `npm run build:win` e distribua o arquivo criado em `dist/`.
+As atualizações são instaladas manualmente pelo instalador do Windows. O aplicativo não verifica nem instala atualizações automaticamente, e alterações no GitHub não publicam instaladores. Para gerar um instalador localmente, execute `npm run build:win` e distribua o arquivo criado em `dist/`.
 
-Por não haver autorização confirmada para redistribuir bulas e os textos derivados, esses dados não são incluídos no repositório público nem nos novos instaladores. A consulta de medicamentos precisa de uma fonte de dados licenciada antes de voltar a ser incluída nas novas instalações.
+Por não haver autorização confirmada para redistribuir bulas e os textos derivados, esses dados não são incluídos nos novos instaladores. A consulta de medicamentos precisa de uma fonte de dados licenciada antes de voltar a ser incluída nas novas instalações.
 
 ## Orçamento WPP e API Trier
 
-No aplicativo instalado, acesse **Farmácia → Orçamento WPP**. A integração inicia junto com o aplicativo e atualiza automaticamente os produtos a cada cinco minutos. O token fica criptografado pelo armazenamento seguro do sistema operacional e não é exposto à interface. A sincronização carrega código, EAN, estoque, preço de venda, custo e custo médio dos produtos ativos, de forma paginada.
+No aplicativo instalado, acesse **Farmácia → Orçamento WPP**. Na primeira utilização, escolha **Configurar Trier**, informe o token de integração emitido pela Trier e salve. O endereço padrão é `https://api-sgf-gateway.triersistemas.com.br/sgfpod1`. O token é criptografado pelo armazenamento seguro do sistema operacional e nunca é incluído no projeto, no instalador ou enviado à interface web.
 
-Em uma instalação administrada, também é possível provisionar a integração por variáveis de ambiente:
-
-- `TRIER_API_BASE_URL`: endereço base do SGF.
-- `TRIER_API_TOKEN`: token Bearer fornecido pela Trier.
-
-O endereço base pode ser definido no instalador sem incluir credenciais: `TRIER_BUNDLED_BASE_URL=http://servidor:4647/sgfpod1 npm run build:win`. Se o app já estiver usando o endereço padrão local, ele passa a usar o endereço incluído no instalador; um endereço personalizado salvo no app continua tendo prioridade.
-
-Para gerar um instalador privado já provisionado, execute `npm run build:win:private` e envie pela entrada padrão um JSON com `token` e `baseUrl`. A credencial não deve ser colocada no código-fonte. Na primeira abertura, o aplicativo copia o token provisionado para o armazenamento seguro e criptografado do Windows.
+Depois da configuração, o app carrega os produtos ativos de forma paginada, guarda o catálogo em arquivo local na pasta de dados do usuário e atualiza estoque e produtos novos a cada cinco minutos. Se a Trier ficar indisponível, os produtos salvos continuam disponíveis. A busca consulta código, EAN, nome, estoque, preço de venda, custo e custo médio.
 
 ## Recursos
 

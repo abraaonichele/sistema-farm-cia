@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld("desktopOfferPrinting", {
 });
 
 contextBridge.exposeInMainWorld("desktopTrier", {
+  getConfig: () => ipcRenderer.invoke("trier:get-config"),
+  saveConfig: (config) => ipcRenderer.invoke("trier:save-config", config),
   getProducts: (forceRefresh = false) => ipcRenderer.invoke("trier:get-products", { forceRefresh }),
   onProductsUpdated: (callback) => {
     if (typeof callback !== "function") throw new TypeError("O callback da Trier precisa ser uma função.");

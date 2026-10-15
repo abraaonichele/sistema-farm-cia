@@ -8,7 +8,7 @@
       name="description"
       content="Dashboard de aplicações e cadastro de pacientes para clínica de injetáveis."
     />
-    <link rel="stylesheet" href="./styles.css?v=36" />
+    <link rel="stylesheet" href="./styles.css?v=37" />
     <link rel="stylesheet" href="./offer-template.css?v=22" />
   </head>
   <body>
@@ -885,9 +885,30 @@
           </div>
           <div class="whatsapp-quote-header-actions">
             <span class="trier-status" id="trier-status" data-status="loading">Conectando à Trier...</span>
+            <button class="button button-secondary trier-config-toggle" id="trier-config-toggle" type="button">Configurar Trier</button>
             <button class="icon-button" id="close-whatsapp-quote" aria-label="Fechar orçamento WPP">×</button>
           </div>
         </header>
+
+        <form class="trier-config-panel hidden" id="trier-config-form">
+          <div>
+            <strong>Conexão com a Trier</strong>
+            <p>O token é protegido neste computador e nunca é enviado à interface web.</p>
+          </div>
+          <label class="field">
+            <span>Endereço base da API</span>
+            <input id="trier-api-base-url" type="url" autocomplete="url" required />
+          </label>
+          <label class="field">
+            <span>Token de integração Trier</span>
+            <input id="trier-api-token" type="password" autocomplete="new-password" placeholder="Cole o token emitido pela Trier" />
+          </label>
+          <div class="trier-config-actions">
+            <p id="trier-config-message" aria-live="polite"></p>
+            <button class="button button-secondary" id="trier-config-cancel" type="button">Cancelar</button>
+            <button class="button button-primary" id="trier-config-save" type="submit">Salvar e conectar</button>
+          </div>
+        </form>
 
         <div class="whatsapp-quote-layout">
           <section class="whatsapp-quote-builder">
@@ -2171,6 +2192,6 @@
         document.write('<script src="./bulas-medicamentos/ean-medicine-aliases.generated.js"><\/script>');
       }
     </script>
-    <script src="./main.js?v=46"></script>
+    <script src="./main.js?v=47"></script>
   </body>
 </html>

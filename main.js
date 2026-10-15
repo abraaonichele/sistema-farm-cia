@@ -749,6 +749,13 @@
     whatsappQuoteModal: document.getElementById("whatsapp-quote-modal"),
     closeWhatsappQuote: document.getElementById("close-whatsapp-quote"),
     trierStatus: document.getElementById("trier-status"),
+    trierConfigToggle: document.getElementById("trier-config-toggle"),
+    trierConfigForm: document.getElementById("trier-config-form"),
+    trierApiBaseUrl: document.getElementById("trier-api-base-url"),
+    trierApiToken: document.getElementById("trier-api-token"),
+    trierConfigMessage: document.getElementById("trier-config-message"),
+    trierConfigCancel: document.getElementById("trier-config-cancel"),
+    trierConfigSave: document.getElementById("trier-config-save"),
     quoteProductForm: document.getElementById("quote-product-form"),
     quoteProductSearch: document.getElementById("quote-product-search"),
     quoteSearchResults: document.getElementById("quote-search-results"),
@@ -3852,6 +3859,11 @@
     if (result?.syncError) {
       state.trierSyncError = result.syncError;
       setTrierStatus("error", `${products.length} produtos • sem conexão • usando última atualização das ${time}`);
+    } else if (result?.cacheError) {
+      state.trierSyncError = result.cacheError;
+      setTrierStatus("error", `${products.length} produtos • atualizado às ${time} • não foi salvo neste computador`);
+    } else if (result?.refreshing) {
+      setTrierStatus("loading", `${products.length} produtos salvos • atualizando estoque desde ${time}...`);
     } else {
       setTrierStatus("success", `${products.length} produtos • atualizado às ${time} • automático a cada 5 min`);
     }
@@ -3867,7 +3879,7 @@
       return true;
     } catch (error) {
       console.error("Erro ao sincronizar produtos da Trier:", error);
-      setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Aguardando servidor Trier em localhost:4647");
+      setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Configure a API Trier");
       const message = error?.message || "Não foi possível consultar o estoque da Trier.";
       state.trierSyncError = message;
       renderQuoteSearchResults();
@@ -3879,6 +3891,20 @@
   async function openWhatsappQuoteModal() {
     openModal(elements.whatsappQuoteModal);
     renderWhatsappQuote();
+    try {
+      const config = await window.desktopTrier.getConfig();
+      elements.trierApiBaseUrl.value = config.baseUrl;
+      elements.trierApiToken.placeholder = config.configured
+        ? "Token salvo neste computador; preencha apenas para substituí-lo"
+        : "Cole o token de integração emitido pela Trier";
+      if (!config.configured) {
+        elements.trierConfigForm.classList.remove("hidden");
+        elements.trierConfigMessage.textContent = "Informe o token da Trier para carregar os produtos.";
+      }
+    } catch (error) {
+      console.error("Não foi possível carregar a configuração da Trier:", error);
+      setTrierStatus("error", error?.message || "Falha ao ler a configuração Trier");
+    }
     if (!state.trierProducts.length) await loadTrierProducts(false);
     setTimeout(() => elements.quoteProductSearch.focus(), 0);
   }
@@ -7470,6 +7496,59 @@
     closeModal(elements.whatsappQuoteModal);
   });
 
+  elements.trierConfigToggle.addEventListener("click", async () => {
+    const opening = elements.trierConfigForm.classList.contains("hidden");
+    elements.trierConfigForm.classList.toggle("hidden", !opening);
+    elements.trierConfigMessage.textContent = "";
+    if (opening) {
+      try {
+        const config = await window.desktopTrier.getConfig();
+        elements.trierApiBaseUrl.value = config.baseUrl;
+        elements.trierApiToken.value = "";
+        elements.trierApiToken.placeholder = config.configured
+          ? "Token salvo neste computador; preencha apenas para substituí-lo"
+          : "Cole o token de integração emitido pela Trier";
+        elements.trierApiToken.focus();
+      } catch (error) {
+        console.error("Não foi possível carregar a configuração da Trier:", error);
+        elements.trierConfigMessage.textContent = error?.message || "Não foi possível carregar a configuração Trier.";
+      }
+    }
+  });
+
+  elements.trierConfigCancel.addEventListener("click", () => {
+    elements.trierConfigForm.classList.add("hidden");
+    elements.trierApiToken.value = "";
+    elements.trierConfigMessage.textContent = "";
+  });
+
+  elements.trierConfigForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    elements.trierConfigSave.disabled = true;
+    elements.trierConfigMessage.textContent = "Salvando a configuração protegida...";
+    try {
+      await window.desktopTrier.saveConfig({
+        baseUrl: elements.trierApiBaseUrl.value.trim(),
+        token: elements.trierApiToken.value,
+      });
+      elements.trierApiToken.value = "";
+      elements.trierConfigMessage.textContent = "Configuração salva neste computador. Testando conexão e carregando produtos...";
+      const connected = await loadTrierProducts(true, true);
+      if (connected) {
+        elements.trierConfigMessage.textContent = `Conexão concluída. ${state.trierProducts.length} produtos carregados e salvos neste computador.`;
+        elements.trierConfigForm.classList.add("hidden");
+      } else {
+        elements.trierConfigMessage.textContent = state.trierSyncError
+          || "A configuração foi salva, mas a API não respondeu. Confira o endereço, o token e a conexão.";
+      }
+    } catch (error) {
+      console.error("Não foi possível salvar a configuração da Trier:", error);
+      elements.trierConfigMessage.textContent = error?.message || "Não foi possível salvar a configuração da Trier.";
+    } finally {
+      elements.trierConfigSave.disabled = false;
+    }
+  });
+
   elements.whatsappQuoteModal.addEventListener("click", (event) => {
     if (event.target === elements.whatsappQuoteModal) closeModal(elements.whatsappQuoteModal);
   });
@@ -7477,7 +7556,7 @@
   if (window.desktopTrier?.onProductsUpdated) {
     window.desktopTrier.onProductsUpdated((result) => applyTrierProducts(result));
     window.desktopTrier.onSyncError?.((error) => {
-      setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Aguardando servidor Trier em localhost:4647");
+      setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Confira conexão e token da Trier");
       state.trierSyncError = error?.message || "Não foi possível conectar ao estoque da Trier.";
       renderQuoteSearchResults();
     });

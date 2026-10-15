@@ -2,6 +2,10 @@ node_modules/
 dist/
 .firebase/
 .DS_Store
+/trier-integration.json
+/trier-products-cache.json
+/trier-bootstrap.json
+/.env.local
 
 # Do not publish medicine leaflets or derived medicine databases.
 /bulas-medicamentos/**/*.pdf
