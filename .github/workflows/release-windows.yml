@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test Trier integration
+        run: npm run test:trier
+
       - name: Set a unique release version
         id: version
         shell: bash

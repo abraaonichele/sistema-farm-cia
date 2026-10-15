@@ -8,7 +8,7 @@
       name="description"
       content="Dashboard de aplicações e cadastro de pacientes para clínica de injetáveis."
     />
-    <link rel="stylesheet" href="./styles.css?v=35" />
+    <link rel="stylesheet" href="./styles.css?v=36" />
     <link rel="stylesheet" href="./offer-template.css?v=22" />
   </head>
   <body>
@@ -92,6 +92,10 @@
               <button class="sidebar-item" type="button" id="open-online-offers">
                 <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" /></svg></span>
                 <span class="sidebar-text">Ofertas online</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-whatsapp-quote">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-5A8.4 8.4 0 1 1 20.5 11.6Z" /><path d="M8.2 7.5c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.5l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.5.9 1.3 1.7 2.2 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.3.5.6 0 .3-.2 1.5-.8 2.1-.6.6-1.5.8-2.4.6-1.1-.3-2.8-1-4.7-2.7-1.5-1.4-2.6-3.1-2.9-4.2-.3-.8 0-1.6.5-2.1Z" /></svg></span>
+                <span class="sidebar-text">Orçamento WPP</span>
               </button>
             </div>
           </details>
@@ -878,6 +882,77 @@
           </div>
           <div class="purchases-list" id="orders-list" aria-live="polite"></div>
         </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="whatsapp-quote-modal" aria-hidden="true">
+      <div class="modal-card modal-whatsapp-quote" role="dialog" aria-modal="true" aria-labelledby="whatsapp-quote-title">
+        <header class="modal-header whatsapp-quote-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon whatsapp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-5A8.4 8.4 0 1 1 20.5 11.6Z" /><path d="M8.2 7.5c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.5l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.5.9 1.3 1.7 2.2 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.3.5.6 0 .3-.2 1.5-.8 2.1-.6.6-1.5.8-2.4.6-1.1-.3-2.8-1-4.7-2.7-1.5-1.4-2.6-3.1-2.9-4.2-.3-.8 0-1.6.5-2.1Z" /></svg></div>
+            <div>
+              <p class="section-label">Farmácia</p>
+              <h2 id="whatsapp-quote-title">Orçamento WPP</h2>
+              <p class="whatsapp-quote-intro">Consulte o estoque da Trier, ajuste os valores e envie o orçamento ao cliente.</p>
+            </div>
+          </div>
+          <div class="whatsapp-quote-header-actions">
+            <span class="trier-status" id="trier-status" data-status="loading">Conectando à Trier...</span>
+            <button class="icon-button" id="close-whatsapp-quote" aria-label="Fechar orçamento WPP">×</button>
+          </div>
+        </header>
+
+        <div class="whatsapp-quote-layout">
+          <section class="whatsapp-quote-builder">
+            <form class="quote-product-form" id="quote-product-form">
+              <div class="quote-search-wrap">
+                <label class="field field-full">
+                  <span>Produto</span>
+                  <input id="quote-product-search" type="search" autocomplete="off" placeholder="Digite o nome ou leia o código de barras" required />
+                </label>
+                <div class="quote-search-results hidden" id="quote-search-results" role="listbox" aria-label="Produtos encontrados"></div>
+              </div>
+              <label class="field">
+                <span>Quantidade</span>
+                <input id="quote-product-quantity" type="number" min="1" step="1" value="1" required />
+              </label>
+              <label class="field">
+                <span>Valor unitário final</span>
+                <div class="quote-money-input"><span>R$</span><input id="quote-product-price" type="text" inputmode="decimal" placeholder="0,00" required /></div>
+              </label>
+              <button class="button button-primary quote-add-product" type="submit" disabled>Adicionar ao orçamento</button>
+            </form>
+
+            <article class="quote-selected-product hidden" id="quote-selected-product" aria-live="polite"></article>
+
+            <div class="quote-empty-state" id="quote-products-empty">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l1 14H5L6 7Z" /><path d="M9 10V6a3 3 0 0 1 6 0v4" /></svg>
+              <strong>Seu orçamento está vazio</strong>
+              <span>Pesquise um produto acima para começar.</span>
+            </div>
+            <div class="quote-items hidden" id="quote-items" aria-live="polite"></div>
+          </section>
+
+          <aside class="quote-summary-card">
+            <div>
+              <p class="section-label">Resumo</p>
+              <h3>Orçamento do cliente</h3>
+            </div>
+            <label class="field field-full">
+              <span>Nome do cliente (opcional)</span>
+              <input id="quote-customer-name" type="text" placeholder="Ex.: Maria" />
+            </label>
+            <div class="quote-summary-line"><span>Itens</span><strong id="quote-items-count">0</strong></div>
+            <div class="quote-summary-total"><span>Total</span><strong id="quote-total">R$ 0,00</strong></div>
+            <p class="quote-summary-note">O preço ajustado será usado apenas neste orçamento e não altera o cadastro na Trier.</p>
+            <button class="button button-primary quote-whatsapp-button" id="send-whatsapp-quote" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-5A8.4 8.4 0 1 1 20.5 11.6Z" /><path d="M8.2 7.5c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.5l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.5.9 1.3 1.7 2.2 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.3.5.6 0 .3-.2 1.5-.8 2.1-.6.6-1.5.8-2.4.6-1.1-.3-2.8-1-4.7-2.7-1.5-1.4-2.6-3.1-2.9-4.2-.3-.8 0-1.6.5-2.1Z" /></svg>
+              Enviar pelo WhatsApp
+            </button>
+            <button class="button button-secondary quote-copy-button" id="copy-whatsapp-quote" type="button" disabled>Copiar mensagem</button>
+            <button class="quote-clear-button" id="clear-whatsapp-quote" type="button" disabled>Limpar orçamento</button>
+          </aside>
+        </div>
       </div>
     </div>
 
@@ -2109,6 +2184,6 @@
         document.write('<script src="./bulas-medicamentos/ean-medicine-aliases.generated.js"><\/script>');
       }
     </script>
-    <script src="./main.js?v=43"></script>
+    <script src="./main.js?v=46"></script>
   </body>
 </html>

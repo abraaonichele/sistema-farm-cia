@@ -40,3 +40,19 @@ contextBridge.exposeInMainWorld("desktopAppUpdates", {
     return () => ipcRenderer.removeListener("app-update:download-progress", listener);
   },
 });
+
+contextBridge.exposeInMainWorld("desktopTrier", {
+  getProducts: (forceRefresh = false) => ipcRenderer.invoke("trier:get-products", { forceRefresh }),
+  onProductsUpdated: (callback) => {
+    if (typeof callback !== "function") throw new TypeError("O callback da Trier precisa ser uma função.");
+    const listener = (_event, result) => callback(result);
+    ipcRenderer.on("trier:products-updated", listener);
+    return () => ipcRenderer.removeListener("trier:products-updated", listener);
+  },
+  onSyncError: (callback) => {
+    if (typeof callback !== "function") throw new TypeError("O callback da Trier precisa ser uma função.");
+    const listener = (_event, result) => callback(result);
+    ipcRenderer.on("trier:sync-error", listener);
+    return () => ipcRenderer.removeListener("trier:sync-error", listener);
+  },
+});

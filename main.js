@@ -554,6 +554,11 @@
     onlineOffersProcessingImages: false,
     onlineBackendReady: false,
     onlineBackendChecked: false,
+    trierProducts: [],
+    trierProductsSyncedAt: "",
+    trierSyncError: "",
+    selectedQuoteProduct: null,
+    whatsappQuoteItems: [],
   };
 
   const elements = {
@@ -586,6 +591,7 @@
     openPricing: document.getElementById("open-pricing"),
     openOfferSheet: document.getElementById("open-offer-sheet"),
     openOnlineOffers: document.getElementById("open-online-offers"),
+    openWhatsappQuote: document.getElementById("open-whatsapp-quote"),
     patientForm: document.getElementById("patient-form"),
     historyModal: document.getElementById("history-modal"),
     closeHistory: document.getElementById("close-history"),
@@ -748,6 +754,24 @@
     orderQuantity: document.getElementById("order-quantity"),
     ordersCount: document.getElementById("orders-count"),
     ordersList: document.getElementById("orders-list"),
+    whatsappQuoteModal: document.getElementById("whatsapp-quote-modal"),
+    closeWhatsappQuote: document.getElementById("close-whatsapp-quote"),
+    trierStatus: document.getElementById("trier-status"),
+    quoteProductForm: document.getElementById("quote-product-form"),
+    quoteProductSearch: document.getElementById("quote-product-search"),
+    quoteSearchResults: document.getElementById("quote-search-results"),
+    quoteProductQuantity: document.getElementById("quote-product-quantity"),
+    quoteProductPrice: document.getElementById("quote-product-price"),
+    quoteAddProduct: document.querySelector(".quote-add-product"),
+    quoteSelectedProduct: document.getElementById("quote-selected-product"),
+    quoteProductsEmpty: document.getElementById("quote-products-empty"),
+    quoteItems: document.getElementById("quote-items"),
+    quoteCustomerName: document.getElementById("quote-customer-name"),
+    quoteItemsCount: document.getElementById("quote-items-count"),
+    quoteTotal: document.getElementById("quote-total"),
+    sendWhatsappQuote: document.getElementById("send-whatsapp-quote"),
+    copyWhatsappQuote: document.getElementById("copy-whatsapp-quote"),
+    clearWhatsappQuote: document.getElementById("clear-whatsapp-quote"),
     pricingModal: document.getElementById("pricing-modal"),
     closePricing: document.getElementById("close-pricing"),
     pricingSettingsPanel: document.getElementById("pricing-settings-panel"),
@@ -3646,6 +3670,256 @@
       console.error("Erro ao remover item de compras:", error);
       showToast(getFirebaseMessage(error));
     }
+  }
+
+  function setTrierStatus(status, message) {
+    elements.trierStatus.dataset.status = status;
+    elements.trierStatus.textContent = message;
+  }
+
+  function getTrierProductCost(product) {
+    return product?.averageCost ?? product?.costPrice ?? null;
+  }
+
+  function renderQuoteSearchResults() {
+    const query = normalize(elements.quoteProductSearch.value.trim());
+    const digits = elements.quoteProductSearch.value.replace(/\D/g, "");
+    if (!query) {
+      elements.quoteSearchResults.classList.add("hidden");
+      elements.quoteSearchResults.innerHTML = "";
+      return;
+    }
+
+    if (!state.trierProducts.length) {
+      elements.quoteSearchResults.classList.remove("hidden");
+      elements.quoteSearchResults.innerHTML = `<div class="quote-search-empty">${escapeHtml(state.trierSyncError || "Conectando ao estoque da Trier. Tente novamente em instantes.")}</div>`;
+      return;
+    }
+
+    const matches = state.trierProducts
+      .map((product, index) => ({ product, index, normalizedName: normalize(product.name) }))
+      .filter(({ product, normalizedName }) => (
+        normalizedName.includes(query)
+        || (digits && (product.barcode.includes(digits) || product.code === digits))
+      ))
+      .sort((left, right) => {
+        const leftExact = left.product.barcode === digits || left.product.code === digits ? 0 : left.normalizedName.startsWith(query) ? 1 : 2;
+        const rightExact = right.product.barcode === digits || right.product.code === digits ? 0 : right.normalizedName.startsWith(query) ? 1 : 2;
+        return leftExact - rightExact || left.product.name.localeCompare(right.product.name, "pt-BR");
+      })
+      .slice(0, 12);
+
+    elements.quoteSearchResults.classList.remove("hidden");
+    if (!matches.length) {
+      elements.quoteSearchResults.innerHTML = `<div class="quote-search-empty">Nenhum produto encontrado no estoque sincronizado.</div>`;
+      return;
+    }
+
+    elements.quoteSearchResults.innerHTML = matches.map(({ product, index }) => `
+      <button class="quote-search-option" type="button" role="option" data-trier-product-index="${index}">
+        <span><strong>${escapeHtml(product.name)}</strong><small>${product.barcode ? `EAN ${escapeHtml(product.barcode)} • ` : ""}Cód. ${escapeHtml(product.code)}</small></span>
+        <span class="quote-search-option-meta"><strong>${formatCurrency(product.salePrice)}</strong><small>${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)} em estoque</small></span>
+      </button>
+    `).join("");
+  }
+
+  function selectQuoteProduct(product) {
+    if (!product) return;
+    state.selectedQuoteProduct = product;
+    elements.quoteProductSearch.value = product.name;
+    elements.quoteProductPrice.value = formatDecimalInput(product.salePrice);
+    elements.quoteProductQuantity.value = "1";
+    elements.quoteSearchResults.classList.add("hidden");
+    elements.quoteAddProduct.disabled = false;
+    const cost = getTrierProductCost(product);
+    elements.quoteSelectedProduct.innerHTML = `
+      <div>
+        <span class="quote-selected-label">Produto selecionado</span>
+        <strong>${escapeHtml(product.name)}</strong>
+        <small>${product.barcode ? `EAN ${escapeHtml(product.barcode)} • ` : ""}Código ${escapeHtml(product.code)}</small>
+      </div>
+      <div class="quote-selected-metrics">
+        <span><small>Estoque</small><strong>${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)}</strong></span>
+        <span><small>Venda Trier</small><strong>${formatCurrency(product.salePrice)}</strong></span>
+        <span><small>Custo${product.averageCost !== null ? " médio" : ""}</small><strong>${cost === null ? "Não informado" : formatCurrency(cost)}</strong></span>
+      </div>
+    `;
+    elements.quoteSelectedProduct.classList.remove("hidden");
+    elements.quoteProductQuantity.focus();
+    elements.quoteProductQuantity.select();
+  }
+
+  function resetQuoteProductSelection() {
+    state.selectedQuoteProduct = null;
+    elements.quoteProductSearch.value = "";
+    elements.quoteProductQuantity.value = "1";
+    elements.quoteProductPrice.value = "";
+    elements.quoteAddProduct.disabled = true;
+    elements.quoteSelectedProduct.classList.add("hidden");
+    elements.quoteSelectedProduct.innerHTML = "";
+    elements.quoteSearchResults.classList.add("hidden");
+    elements.quoteSearchResults.innerHTML = "";
+  }
+
+  function renderWhatsappQuote() {
+    const hasItems = state.whatsappQuoteItems.length > 0;
+    elements.quoteProductsEmpty.classList.toggle("hidden", hasItems);
+    elements.quoteItems.classList.toggle("hidden", !hasItems);
+    elements.sendWhatsappQuote.disabled = !hasItems;
+    elements.copyWhatsappQuote.disabled = !hasItems;
+    elements.clearWhatsappQuote.disabled = !hasItems;
+    const itemCount = state.whatsappQuoteItems.reduce((total, item) => total + item.quantity, 0);
+    const total = state.whatsappQuoteItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+    elements.quoteItemsCount.textContent = String(itemCount);
+    elements.quoteTotal.textContent = formatCurrency(total);
+
+    elements.quoteItems.innerHTML = state.whatsappQuoteItems.map((item) => {
+      const cost = getTrierProductCost(item.product);
+      const exceedsStock = item.quantity > item.product.stock;
+      return `
+        <article class="quote-item" data-quote-item-id="${item.id}">
+          <div class="quote-item-copy">
+            <strong>${escapeHtml(item.product.name)}</strong>
+            <span>${item.product.barcode ? `EAN ${escapeHtml(item.product.barcode)} • ` : ""}Estoque ${escapeHtml(String(item.product.stock))} ${escapeHtml(item.product.unit)}${cost === null ? "" : ` • Custo ${formatCurrency(cost)}`}</span>
+            ${exceedsStock ? `<small class="quote-stock-warning">Quantidade acima do estoque disponível</small>` : ""}
+          </div>
+          <label class="quote-item-field"><span>Qtd.</span><input type="number" min="1" step="1" value="${item.quantity}" data-quote-item-action="quantity" /></label>
+          <label class="quote-item-field quote-item-price"><span>Valor unitário</span><div class="quote-money-input"><span>R$</span><input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-quote-item-action="price" /></div></label>
+          <div class="quote-item-subtotal"><span>Subtotal</span><strong>${formatCurrency(item.quantity * item.price)}</strong></div>
+          <button class="quote-item-remove" type="button" data-quote-item-action="remove" aria-label="Remover ${escapeHtml(item.product.name)}">×</button>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function addSelectedProductToQuote() {
+    const product = state.selectedQuoteProduct;
+    const quantity = Number(elements.quoteProductQuantity.value);
+    const price = parseNumberValue(elements.quoteProductPrice.value);
+    if (!product) {
+      showToast("Selecione um produto da lista da Trier.");
+      return false;
+    }
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      showToast("Informe uma quantidade válida.");
+      return false;
+    }
+    if (price === null || price < 0) {
+      showToast("Informe um valor final válido.");
+      return false;
+    }
+
+    const existing = state.whatsappQuoteItems.find((item) => item.product.code === product.code && item.price === price);
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      state.whatsappQuoteItems.push({ id: crypto.randomUUID(), product, quantity, price });
+    }
+    renderWhatsappQuote();
+    resetQuoteProductSelection();
+    elements.quoteProductSearch.focus();
+    showToast("Produto adicionado ao orçamento.");
+    return true;
+  }
+
+  function buildWhatsappQuoteMessage() {
+    const customerName = elements.quoteCustomerName.value.trim();
+    const total = state.whatsappQuoteItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+    const lines = [
+      "*ORÇAMENTO - FARMÁCIA SUPERPREÇO*",
+      customerName ? `Olá, ${customerName}! Segue o seu orçamento:` : "Olá! Segue o seu orçamento:",
+      "",
+      ...state.whatsappQuoteItems.flatMap((item, index) => [
+        `*${index + 1}. ${item.product.name}*`,
+        `${item.quantity} x ${formatCurrency(item.price)} = *${formatCurrency(item.quantity * item.price)}*`,
+        "",
+      ]),
+      `*TOTAL: ${formatCurrency(total)}*`,
+      "",
+      "Valores sujeitos à disponibilidade de estoque.",
+    ];
+    return lines.join("\n");
+  }
+
+  function applyTrierProducts(result) {
+    const products = Array.isArray(result?.products) ? result.products : [];
+    const productsByCode = new Map(products.map((product) => [product.code, product]));
+    state.trierProducts = products;
+    state.trierProductsSyncedAt = result?.syncedAt || new Date().toISOString();
+    state.trierSyncError = "";
+    state.whatsappQuoteItems = state.whatsappQuoteItems.map((item) => ({
+      ...item,
+      product: productsByCode.get(item.product.code) || item.product,
+    }));
+    if (state.selectedQuoteProduct) {
+      state.selectedQuoteProduct = productsByCode.get(state.selectedQuoteProduct.code) || state.selectedQuoteProduct;
+    }
+    elements.quoteProductSearch.disabled = false;
+    const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      .format(new Date(state.trierProductsSyncedAt));
+    if (result?.syncError) {
+      state.trierSyncError = result.syncError;
+      setTrierStatus("error", `${products.length} produtos • sem conexão • usando última atualização das ${time}`);
+    } else {
+      setTrierStatus("success", `${products.length} produtos • atualizado às ${time} • automático a cada 5 min`);
+    }
+    if (!elements.whatsappQuoteModal.classList.contains("hidden")) renderWhatsappQuote();
+  }
+
+  function isLocalTrierBrowser() {
+    return window.location.protocol === "http:"
+      && ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      && Boolean(window.location.port);
+  }
+
+  async function getLocalTrierProducts() {
+    const response = await fetch("/api/trier/products", { cache: "no-store" });
+    const result = await response.json();
+    if (!response.ok) {
+      const error = new Error(result?.error || "Não foi possível consultar os produtos sincronizados localmente.");
+      error.code = response.status === 503 ? "TRIER_SYNC_UNAVAILABLE" : "TRIER_LOCAL_SERVER_ERROR";
+      throw error;
+    }
+    return result;
+  }
+
+  async function loadTrierProducts(forceRefresh = false, silent = false) {
+    if (!window.desktopTrier && !isLocalTrierBrowser()) {
+      state.trierSyncError = "Abra a página pelo servidor local para consultar a Trier no navegador.";
+      setTrierStatus("error", "Abra pelo servidor local");
+      if (!silent) showToast("Para usar a Trier no navegador, inicie o servidor local e abra o endereço informado.");
+      return false;
+    }
+
+    setTrierStatus("loading", state.trierProducts.length ? "Atualizando estoque automaticamente..." : "Conectando à Trier...");
+    try {
+      const result = window.desktopTrier
+        ? await window.desktopTrier.getProducts(forceRefresh)
+        : await getLocalTrierProducts();
+      applyTrierProducts(result);
+      if (!state.trierProducts.length && !silent) showToast("A Trier não retornou produtos ativos.");
+      return true;
+    } catch (error) {
+      console.error("Erro ao sincronizar produtos da Trier:", error);
+      setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Aguardando servidor Trier em localhost:4647");
+      const message = error?.message || "Não foi possível consultar o estoque da Trier.";
+      state.trierSyncError = message;
+      renderQuoteSearchResults();
+      if (!silent) showToast(message);
+      return false;
+    }
+  }
+
+  async function openWhatsappQuoteModal() {
+    openModal(elements.whatsappQuoteModal);
+    renderWhatsappQuote();
+    if (!window.desktopTrier && !isLocalTrierBrowser()) {
+      state.trierSyncError = "Abra a página pelo servidor local para consultar a Trier no navegador.";
+      setTrierStatus("error", "Abra pelo servidor local");
+      return;
+    }
+    if (!state.trierProducts.length) await loadTrierProducts(false);
+    setTimeout(() => elements.quoteProductSearch.focus(), 0);
   }
 
   async function createDoctorFromForm() {
@@ -7309,6 +7583,119 @@
     openPurchasesModal();
   });
 
+  elements.openWhatsappQuote.addEventListener("click", async () => {
+    await openWhatsappQuoteModal();
+  });
+
+  elements.closeWhatsappQuote.addEventListener("click", () => {
+    closeModal(elements.whatsappQuoteModal);
+  });
+
+  elements.whatsappQuoteModal.addEventListener("click", (event) => {
+    if (event.target === elements.whatsappQuoteModal) closeModal(elements.whatsappQuoteModal);
+  });
+
+  if (window.desktopTrier?.onProductsUpdated) {
+    window.desktopTrier.onProductsUpdated((result) => applyTrierProducts(result));
+    window.desktopTrier.onSyncError?.((error) => {
+      setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Aguardando servidor Trier em localhost:4647");
+      state.trierSyncError = error?.message || "Não foi possível conectar ao estoque da Trier.";
+      renderQuoteSearchResults();
+    });
+    loadTrierProducts(false, true);
+  } else if (isLocalTrierBrowser()) {
+    loadTrierProducts(false, true);
+    const trierEvents = new EventSource("/api/trier/events");
+    trierEvents.addEventListener("trier-sync", (event) => {
+      let detail;
+      try {
+        detail = JSON.parse(event.data);
+      } catch (error) {
+        console.error("Não foi possível interpretar o evento de sincronização Trier:", error);
+        return;
+      }
+      if (detail.type === "updated" || detail.type === "error") {
+        loadTrierProducts(false, true);
+      }
+    });
+  }
+
+  elements.quoteProductSearch.addEventListener("input", debounce(() => {
+    state.selectedQuoteProduct = null;
+    elements.quoteAddProduct.disabled = true;
+    elements.quoteSelectedProduct.classList.add("hidden");
+    elements.quoteProductPrice.value = "";
+    renderQuoteSearchResults();
+  }, 120));
+
+  elements.quoteProductSearch.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    renderQuoteSearchResults();
+    const firstResult = elements.quoteSearchResults.querySelector("[data-trier-product-index]");
+    if (firstResult) selectQuoteProduct(state.trierProducts[Number(firstResult.dataset.trierProductIndex)]);
+  });
+
+  elements.quoteSearchResults.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-trier-product-index]");
+    if (!option) return;
+    selectQuoteProduct(state.trierProducts[Number(option.dataset.trierProductIndex)]);
+  });
+
+  elements.quoteProductForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    addSelectedProductToQuote();
+  });
+
+  elements.quoteItems.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-quote-item-action]");
+    if (!input || input.dataset.quoteItemAction === "remove") return;
+    const itemId = input.closest("[data-quote-item-id]")?.dataset.quoteItemId;
+    const item = state.whatsappQuoteItems.find((entry) => entry.id === itemId);
+    if (!item) return;
+    if (input.dataset.quoteItemAction === "quantity") {
+      const quantity = Number(input.value);
+      item.quantity = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+    } else if (input.dataset.quoteItemAction === "price") {
+      const price = parseNumberValue(input.value);
+      item.price = price !== null && price >= 0 ? price : item.price;
+    }
+    renderWhatsappQuote();
+  });
+
+  elements.quoteItems.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-quote-item-action='remove']");
+    if (!removeButton) return;
+    const itemId = removeButton.closest("[data-quote-item-id]")?.dataset.quoteItemId;
+    state.whatsappQuoteItems = state.whatsappQuoteItems.filter((item) => item.id !== itemId);
+    renderWhatsappQuote();
+  });
+
+  elements.clearWhatsappQuote.addEventListener("click", () => {
+    if (!state.whatsappQuoteItems.length) return;
+    if (!window.confirm("Deseja limpar todos os itens deste orçamento?")) return;
+    state.whatsappQuoteItems = [];
+    elements.quoteCustomerName.value = "";
+    resetQuoteProductSelection();
+    renderWhatsappQuote();
+  });
+
+  elements.copyWhatsappQuote.addEventListener("click", async () => {
+    if (!state.whatsappQuoteItems.length) return;
+    try {
+      await copyChatMessage(buildWhatsappQuoteMessage());
+      showToast("Mensagem do orçamento copiada.");
+    } catch (error) {
+      console.error("Erro ao copiar orçamento:", error);
+      showToast("Não foi possível copiar o orçamento.");
+    }
+  });
+
+  elements.sendWhatsappQuote.addEventListener("click", () => {
+    if (!state.whatsappQuoteItems.length) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildWhatsappQuoteMessage())}`, "_blank", "noopener");
+  });
+
   elements.closePurchases.addEventListener("click", () => {
     closeModal(elements.purchasesModal);
   });
@@ -8018,6 +8405,7 @@
       closeModal(elements.accountModal);
       closeModal(elements.doctorsModal);
       closeModal(elements.doctorLookupModal);
+      closeModal(elements.whatsappQuoteModal);
       closeModal(elements.pricingModal);
       closeModal(elements.onlineOffersModal);
       closeModal(elements.offerSheetModal);

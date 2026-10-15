@@ -1,13 +1,169 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { ElectronHttpExecutor } = require("electron-updater/out/electronHttpExecutor");
 const fs = require("fs/promises");
 const https = require("https");
 const path = require("path");
+const { fetchTrierProducts, normalizeTrierBaseUrl, TRIER_DEFAULT_BASE_URL } = require("./trier-products.cjs");
 
 let availableUpdateVersion = "";
 let downloadedUpdateReady = false;
 let usingNodeTlsForUpdates = false;
+let trierProductsCache = null;
+let trierProductsCacheAt = 0;
+let trierProductsFetchPromise = null;
+let trierSyncInterval = null;
+let trierSyncInProgress = false;
+
+const TRIER_CACHE_DURATION_MS = 5 * 60 * 1000;
+
+function getTrierConfigPath() {
+  return path.join(app.getPath("userData"), "trier-integration.json");
+}
+
+function getBundledTrierConfigPath() {
+  return path.join(process.resourcesPath, "trier-bootstrap.json");
+}
+
+async function readBundledTrierConfig() {
+  try {
+    const bundled = JSON.parse(await fs.readFile(getBundledTrierConfigPath(), "utf8"));
+    return {
+      baseUrl: String(bundled?.baseUrl || "").trim(),
+      token: String(bundled?.token || "").trim(),
+    };
+  } catch (error) {
+    if (error?.code !== "ENOENT") console.warn("Não foi possível ler o provisionamento da Trier.", error);
+    return { baseUrl: "", token: "" };
+  }
+}
+
+async function writeEncryptedTrierConfig(baseUrl, token) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("A criptografia segura do sistema não está disponível neste computador.");
+  }
+  const config = {
+    baseUrl: normalizeTrierBaseUrl(baseUrl),
+    encryptedToken: safeStorage.encryptString(token).toString("base64"),
+    updatedAt: new Date().toISOString(),
+  };
+  await fs.mkdir(path.dirname(getTrierConfigPath()), { recursive: true });
+  await fs.writeFile(getTrierConfigPath(), `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+  return config;
+}
+
+async function readTrierConfig() {
+  let stored = {};
+  try {
+    stored = JSON.parse(await fs.readFile(getTrierConfigPath(), "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") console.warn("Não foi possível ler a configuração da Trier.", error);
+  }
+
+  const bundled = await readBundledTrierConfig();
+  const environmentToken = String(process.env.TRIER_API_TOKEN || "").trim();
+  let storedToken = "";
+  if (stored.encryptedToken && safeStorage.isEncryptionAvailable()) {
+    try {
+      storedToken = safeStorage.decryptString(Buffer.from(stored.encryptedToken, "base64")).trim();
+    } catch (error) {
+      console.warn("Não foi possível descriptografar o token da Trier.", error);
+    }
+  }
+
+  const baseUrl = normalizeTrierBaseUrl(
+    process.env.TRIER_API_BASE_URL || stored.baseUrl || bundled.baseUrl || TRIER_DEFAULT_BASE_URL,
+  );
+  const token = environmentToken || storedToken || bundled.token;
+
+  if (!environmentToken && !storedToken && bundled.token) {
+    try {
+      await writeEncryptedTrierConfig(baseUrl, bundled.token);
+    } catch (error) {
+      console.warn("Não foi possível proteger o token provisionado da Trier.", error);
+    }
+  }
+
+  return {
+    baseUrl,
+    token,
+  };
+}
+
+async function saveTrierConfig({ baseUrl, token }) {
+  const current = await readTrierConfig();
+  const nextToken = String(token || "").trim() || current.token;
+  if (!nextToken) throw new Error("Informe o token de integração fornecido pela Trier.");
+  const config = await writeEncryptedTrierConfig(baseUrl || current.baseUrl, nextToken);
+  trierProductsCache = null;
+  trierProductsCacheAt = 0;
+  return { baseUrl: config.baseUrl, configured: true };
+}
+
+async function fetchAllTrierProducts(forceRefresh = false) {
+  if (!forceRefresh && trierProductsCache && Date.now() - trierProductsCacheAt < TRIER_CACHE_DURATION_MS) {
+    return { products: trierProductsCache, cached: true, syncedAt: new Date(trierProductsCacheAt).toISOString() };
+  }
+  if (trierProductsFetchPromise) return trierProductsFetchPromise;
+
+  trierProductsFetchPromise = (async () => {
+    const config = await readTrierConfig();
+    if (!config.token) {
+      const error = new Error("O token da Trier não está disponível para a sincronização automática.");
+      error.code = "TRIER_NOT_CONFIGURED";
+      throw error;
+    }
+
+    const products = await fetchTrierProducts(config);
+    trierProductsCache = products;
+    trierProductsCacheAt = Date.now();
+    return { products, cached: false, syncedAt: new Date(trierProductsCacheAt).toISOString() };
+  })();
+
+  try {
+    return await trierProductsFetchPromise;
+  } finally {
+    trierProductsFetchPromise = null;
+  }
+}
+
+function registerTrierHandlers() {
+  ipcMain.handle("trier:get-config", async () => {
+    const config = await readTrierConfig();
+    return { baseUrl: config.baseUrl, configured: Boolean(config.token) };
+  });
+  ipcMain.handle("trier:save-config", async (_event, payload) => saveTrierConfig(payload || {}));
+  ipcMain.handle("trier:get-products", async (_event, payload) => fetchAllTrierProducts(Boolean(payload?.forceRefresh)));
+}
+
+function broadcastTrierEvent(channel, payload) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send(channel, payload);
+  }
+}
+
+async function syncTrierProductsAutomatically() {
+  if (trierSyncInProgress) return;
+  trierSyncInProgress = true;
+  try {
+    const result = await fetchAllTrierProducts(true);
+    broadcastTrierEvent("trier:products-updated", result);
+  } catch (error) {
+    console.error("Erro na sincronização automática da Trier:", error);
+    broadcastTrierEvent("trier:sync-error", {
+      message: error?.message || "Não foi possível atualizar os produtos da Trier.",
+      occurredAt: new Date().toISOString(),
+    });
+  } finally {
+    trierSyncInProgress = false;
+  }
+}
+
+function startTrierAutomaticSync() {
+  if (trierSyncInterval) clearInterval(trierSyncInterval);
+  setTimeout(syncTrierProductsAutomatically, 1_500);
+  trierSyncInterval = setInterval(syncTrierProductsAutomatically, TRIER_CACHE_DURATION_MS);
+}
 
 class NodeTlsHttpExecutor extends ElectronHttpExecutor {
   createRequest(options, callback) {
@@ -277,13 +433,19 @@ function createWindow() {
 app.whenReady().then(() => {
   registerOfferPrintingHandlers();
   registerAppUpdateHandlers();
+  registerTrierHandlers();
   createWindow();
+  startTrierAutomaticSync();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+});
+
+app.on("before-quit", () => {
+  if (trierSyncInterval) clearInterval(trierSyncInterval);
 });
 
 app.on("window-all-closed", () => {
