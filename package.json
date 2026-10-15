@@ -1,6 +1,6 @@
 {
   "name": "atendimento-inj-farmacia",
-  "version": "1.0.18",
+  "version": "1.0.24",
   "description": "Aplicativo desktop para atendimento de injetaveis com Firebase.",
   "main": "electron-main.js",
   "author": "Mega",
@@ -12,9 +12,7 @@
   },
   "scripts": {
     "start": "electron .",
-    "browser:local": "node scripts/serve-local-browser.cjs",
-    "browser:local:setup": "node scripts/configure-local-trier.cjs",
-    "test:trier": "node --test tests/trier-products.test.cjs tests/local-browser-server.test.cjs",
+    "test:trier": "node --test tests/trier-products.test.cjs",
     "supabase:password-reset": "node scripts/serve-supabase-password-reset.mjs",
     "data:compact": "node gerar-dados-medicamentos-compactos.mjs",
     "build:win": "electron-builder --win nsis --x64 --publish never",
@@ -52,14 +50,6 @@
       "assets/**/*",
       "package.json"
     ],
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "abraaonichele",
-        "repo": "sistema-farm-cia",
-        "releaseType": "release"
-      }
-    ],
     "win": {
       "icon": "build/icon.ico",
       "target": [
@@ -90,8 +80,5 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Atendimento Inj Farmacia"
     }
-  },
-  "dependencies": {
-    "electron-updater": "^6.8.9"
   }
 }

@@ -1,14 +1,8 @@
 const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
-const { autoUpdater } = require("electron-updater");
-const { ElectronHttpExecutor } = require("electron-updater/out/electronHttpExecutor");
 const fs = require("fs/promises");
-const https = require("https");
 const path = require("path");
 const { fetchTrierProducts, normalizeTrierBaseUrl, TRIER_DEFAULT_BASE_URL } = require("./trier-products.cjs");
 
-let availableUpdateVersion = "";
-let downloadedUpdateReady = false;
-let usingNodeTlsForUpdates = false;
 let trierProductsCache = null;
 let trierProductsCacheAt = 0;
 let trierProductsFetchPromise = null;
@@ -163,113 +157,6 @@ function startTrierAutomaticSync() {
   if (trierSyncInterval) clearInterval(trierSyncInterval);
   setTimeout(syncTrierProductsAutomatically, 1_500);
   trierSyncInterval = setInterval(syncTrierProductsAutomatically, TRIER_CACHE_DURATION_MS);
-}
-
-class NodeTlsHttpExecutor extends ElectronHttpExecutor {
-  createRequest(options, callback) {
-    const requestOptions = {
-      ...options,
-      headers: options.headers ? { ...options.headers } : undefined,
-    };
-    delete requestOptions.redirect;
-    delete requestOptions.session;
-
-    const hostHeader = requestOptions.headers?.Host || requestOptions.headers?.host;
-    if (hostHeader) {
-      requestOptions.hostname = hostHeader;
-      delete requestOptions.headers.Host;
-      delete requestOptions.headers.host;
-    }
-
-    if (requestOptions.protocol !== "https:") {
-      throw new Error(`O atualizador recusou uma conexão não segura: ${requestOptions.protocol || "protocolo ausente"}`);
-    }
-
-    return https.request(requestOptions, callback);
-  }
-}
-
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = false;
-autoUpdater.logger = console;
-
-autoUpdater.on("download-progress", (progress) => {
-  for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send("app-update:download-progress", {
-      percent: Math.round(progress.percent),
-    });
-  }
-});
-
-autoUpdater.on("update-downloaded", () => {
-  downloadedUpdateReady = true;
-});
-
-function registerAppUpdateHandlers() {
-  ipcMain.handle("app-update:check", async () => {
-    if (process.platform !== "win32" || !app.isPackaged) {
-      return {
-        status: "unsupported",
-        currentVersion: app.getVersion(),
-      };
-    }
-
-    let result;
-    try {
-      result = await autoUpdater.checkForUpdates();
-    } catch (error) {
-      const errorText = `${error?.code || ""} ${error?.message || error}`;
-      if (usingNodeTlsForUpdates || !/ERR_CERT_AUTHORITY_INVALID|CERT_AUTHORITY_INVALID/i.test(errorText)) {
-        throw error;
-      }
-
-      console.warn("A validação TLS do Electron falhou; tentando novamente com TLS padrão do Node.js.", error);
-      usingNodeTlsForUpdates = true;
-      autoUpdater.httpExecutor = new NodeTlsHttpExecutor();
-      autoUpdater.setFeedURL({
-        provider: "github",
-        owner: "abraaonichele",
-        repo: "sistema-farm-cia",
-        releaseType: "release",
-      });
-
-      try {
-        result = await autoUpdater.checkForUpdates();
-      } catch (fallbackError) {
-        const fallbackMessage = String(fallbackError?.message || fallbackError).trim().slice(0, 300);
-        throw new Error(
-          `O Windows não conseguiu validar o certificado HTTPS do servidor de atualização. ` +
-          `A segunda tentativa segura também falhou: ${fallbackMessage}. ` +
-          `Confira a data e hora do Windows, instale as atualizações de certificados do Windows e tente novamente.`,
-          { cause: fallbackError },
-        );
-      }
-    }
-
-    availableUpdateVersion = result?.isUpdateAvailable ? result.updateInfo.version : "";
-    downloadedUpdateReady = false;
-    return {
-      status: "checked",
-      updateAvailable: Boolean(availableUpdateVersion),
-      currentVersion: app.getVersion(),
-      version: availableUpdateVersion || null,
-    };
-  });
-
-  ipcMain.handle("app-update:download", async () => {
-    if (!availableUpdateVersion) {
-      throw new Error("Verifique se há uma atualização antes de iniciar o download.");
-    }
-    await autoUpdater.downloadUpdate();
-    return { downloaded: true };
-  });
-
-  ipcMain.handle("app-update:install", () => {
-    if (!downloadedUpdateReady) {
-      throw new Error("A atualização ainda não terminou de baixar.");
-    }
-    autoUpdater.quitAndInstall(false, true);
-  });
 }
 
 function validateOfferPrintRequest(payload) {
@@ -432,7 +319,6 @@ function createWindow() {
 
 app.whenReady().then(() => {
   registerOfferPrintingHandlers();
-  registerAppUpdateHandlers();
   registerTrierHandlers();
   createWindow();
   startTrierAutomaticSync();

@@ -718,14 +718,6 @@
     accountEmail: document.getElementById("account-email"),
     accountCpf: document.getElementById("account-cpf"),
     accountCrf: document.getElementById("account-crf"),
-    checkAppUpdates: [
-      document.getElementById("check-app-updates"),
-      document.getElementById("check-app-updates-menu"),
-    ],
-    appUpdateStatus: [
-      document.getElementById("app-update-status"),
-      document.getElementById("app-update-menu-status"),
-    ],
     doctorsModal: document.getElementById("doctors-modal"),
     closeDoctors: document.getElementById("close-doctors"),
     doctorsForm: document.getElementById("doctors-form"),
@@ -3866,36 +3858,10 @@
     if (!elements.whatsappQuoteModal.classList.contains("hidden")) renderWhatsappQuote();
   }
 
-  function isLocalTrierBrowser() {
-    return window.location.protocol === "http:"
-      && ["localhost", "127.0.0.1"].includes(window.location.hostname)
-      && Boolean(window.location.port);
-  }
-
-  async function getLocalTrierProducts() {
-    const response = await fetch("/api/trier/products", { cache: "no-store" });
-    const result = await response.json();
-    if (!response.ok) {
-      const error = new Error(result?.error || "Não foi possível consultar os produtos sincronizados localmente.");
-      error.code = response.status === 503 ? "TRIER_SYNC_UNAVAILABLE" : "TRIER_LOCAL_SERVER_ERROR";
-      throw error;
-    }
-    return result;
-  }
-
   async function loadTrierProducts(forceRefresh = false, silent = false) {
-    if (!window.desktopTrier && !isLocalTrierBrowser()) {
-      state.trierSyncError = "Abra a página pelo servidor local para consultar a Trier no navegador.";
-      setTrierStatus("error", "Abra pelo servidor local");
-      if (!silent) showToast("Para usar a Trier no navegador, inicie o servidor local e abra o endereço informado.");
-      return false;
-    }
-
     setTrierStatus("loading", state.trierProducts.length ? "Atualizando estoque automaticamente..." : "Conectando à Trier...");
     try {
-      const result = window.desktopTrier
-        ? await window.desktopTrier.getProducts(forceRefresh)
-        : await getLocalTrierProducts();
+      const result = await window.desktopTrier.getProducts(forceRefresh);
       applyTrierProducts(result);
       if (!state.trierProducts.length && !silent) showToast("A Trier não retornou produtos ativos.");
       return true;
@@ -3913,11 +3879,6 @@
   async function openWhatsappQuoteModal() {
     openModal(elements.whatsappQuoteModal);
     renderWhatsappQuote();
-    if (!window.desktopTrier && !isLocalTrierBrowser()) {
-      state.trierSyncError = "Abra a página pelo servidor local para consultar a Trier no navegador.";
-      setTrierStatus("error", "Abra pelo servidor local");
-      return;
-    }
     if (!state.trierProducts.length) await loadTrierProducts(false);
     setTimeout(() => elements.quoteProductSearch.focus(), 0);
   }
@@ -7493,88 +7454,6 @@
     openAccountModal();
   });
 
-  let updateProgressUnsubscribe = null;
-  async function checkAppUpdates() {
-    const updater = window.desktopAppUpdates;
-    if (!updater) {
-      elements.appUpdateStatus.forEach((status) => {
-        status.textContent = "A atualização automática está disponível apenas no aplicativo instalado para Windows.";
-      });
-      return;
-    }
-
-    elements.checkAppUpdates.forEach((button) => {
-      button.disabled = true;
-      button.textContent = "Verificando...";
-    });
-    elements.appUpdateStatus.forEach((status) => {
-      status.textContent = "Consultando a versão mais recente...";
-    });
-    try {
-      const result = await updater.checkForUpdates();
-      if (result.status === "unsupported") {
-        elements.appUpdateStatus.forEach((status) => {
-          status.textContent = "A atualização automática está disponível apenas no aplicativo instalado para Windows.";
-        });
-        return;
-      }
-      if (!result.updateAvailable) {
-        elements.appUpdateStatus.forEach((status) => {
-          status.textContent = `Você já está usando a versão mais recente (${result.currentVersion}).`;
-        });
-        return;
-      }
-
-      const shouldUpdate = window.confirm(
-        `A versão ${result.version} está disponível. A versão instalada é ${result.currentVersion}. Deseja baixar e instalar agora?`,
-      );
-      if (!shouldUpdate) {
-        elements.appUpdateStatus.forEach((status) => {
-          status.textContent = "Atualização disponível. Você pode instalá-la quando quiser.";
-        });
-        return;
-      }
-
-      elements.checkAppUpdates.forEach((button) => {
-        button.textContent = "Baixando...";
-      });
-      elements.appUpdateStatus.forEach((status) => {
-        status.textContent = "Baixando a atualização...";
-      });
-      updateProgressUnsubscribe?.();
-      updateProgressUnsubscribe = updater.onDownloadProgress(({ percent }) => {
-        elements.appUpdateStatus.forEach((status) => {
-          status.textContent = `Baixando atualização: ${percent}%`;
-        });
-      });
-      await updater.downloadUpdate();
-      updateProgressUnsubscribe();
-      updateProgressUnsubscribe = null;
-      elements.appUpdateStatus.forEach((status) => {
-        status.textContent = "Download concluído. O aplicativo será reiniciado para concluir a atualização.";
-      });
-      await updater.installUpdate();
-    } catch (error) {
-      console.error("Erro ao verificar ou instalar atualizações:", error);
-      updateProgressUnsubscribe?.();
-      updateProgressUnsubscribe = null;
-      const reason = String(error?.message || error).trim().slice(0, 240);
-      elements.appUpdateStatus.forEach((status) => {
-        status.textContent = reason
-          ? `Não foi possível concluir a atualização: ${reason}`
-          : "Não foi possível concluir a atualização. Confira sua conexão e tente novamente.";
-      });
-    } finally {
-      elements.checkAppUpdates.forEach((button) => {
-        button.disabled = false;
-        button.textContent = "Verificar atualização";
-      });
-    }
-  }
-  elements.checkAppUpdates.forEach((button) => {
-    button.addEventListener("click", checkAppUpdates);
-  });
-
   elements.openDoctors.addEventListener("click", () => {
     openDoctorsModal();
   });
@@ -7603,21 +7482,6 @@
       renderQuoteSearchResults();
     });
     loadTrierProducts(false, true);
-  } else if (isLocalTrierBrowser()) {
-    loadTrierProducts(false, true);
-    const trierEvents = new EventSource("/api/trier/events");
-    trierEvents.addEventListener("trier-sync", (event) => {
-      let detail;
-      try {
-        detail = JSON.parse(event.data);
-      } catch (error) {
-        console.error("Não foi possível interpretar o evento de sincronização Trier:", error);
-        return;
-      }
-      if (detail.type === "updated" || detail.type === "error") {
-        loadTrierProducts(false, true);
-      }
-    });
   }
 
   elements.quoteProductSearch.addEventListener("input", debounce(() => {

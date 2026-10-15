@@ -27,20 +27,6 @@ contextBridge.exposeInMainWorld("desktopOfferPrinting", {
   print: (html, widthMm, heightMm) => ipcRenderer.invoke("offer:print", { html, widthMm, heightMm }),
 });
 
-contextBridge.exposeInMainWorld("desktopAppUpdates", {
-  checkForUpdates: () => ipcRenderer.invoke("app-update:check"),
-  downloadUpdate: () => ipcRenderer.invoke("app-update:download"),
-  installUpdate: () => ipcRenderer.invoke("app-update:install"),
-  onDownloadProgress: (callback) => {
-    if (typeof callback !== "function") {
-      throw new TypeError("O callback de progresso da atualização precisa ser uma função.");
-    }
-    const listener = (_event, progress) => callback(progress);
-    ipcRenderer.on("app-update:download-progress", listener);
-    return () => ipcRenderer.removeListener("app-update:download-progress", listener);
-  },
-});
-
 contextBridge.exposeInMainWorld("desktopTrier", {
   getProducts: (forceRefresh = false) => ipcRenderer.invoke("trier:get-products", { forceRefresh }),
   onProductsUpdated: (callback) => {
