@@ -14,12 +14,14 @@ Por não haver autorização confirmada para redistribuir bulas e os textos deri
 
 ## Orçamento WPP e API Trier
 
-No aplicativo instalado, acesse **Farmácia → Orçamento WPP**. A integração inicia junto com o aplicativo e atualiza automaticamente os produtos a cada cinco minutos, sem botões de configuração ou atualização na tela operacional. O token provisionado fica criptografado pelo armazenamento seguro do sistema operacional e não é exposto à interface.
+No aplicativo instalado, acesse **Farmácia → Orçamento WPP**. A integração inicia junto com o aplicativo e atualiza automaticamente os produtos a cada cinco minutos. O token fica criptografado pelo armazenamento seguro do sistema operacional e não é exposto à interface. A sincronização carrega código, EAN, estoque, preço de venda, custo e custo médio dos produtos ativos, de forma paginada.
 
-O aplicativo instalado mantém o token protegido pelo armazenamento seguro do sistema operacional e atualiza o catálogo automaticamente a cada cinco minutos. A sincronização consulta produtos ativos de forma paginada e carrega código, EAN, estoque, preço de venda, custo e custo médio. Em uma instalação administrada, também é possível provisionar a integração por variáveis de ambiente:
+Em uma instalação administrada, também é possível provisionar a integração por variáveis de ambiente:
 
 - `TRIER_API_BASE_URL`: endereço base do SGF.
 - `TRIER_API_TOKEN`: token Bearer fornecido pela Trier.
+
+O endereço base pode ser definido no instalador sem incluir credenciais: `TRIER_BUNDLED_BASE_URL=http://servidor:4647/sgfpod1 npm run build:win`. Se o app já estiver usando o endereço padrão local, ele passa a usar o endereço incluído no instalador; um endereço personalizado salvo no app continua tendo prioridade.
 
 Para gerar um instalador privado já provisionado, execute `npm run build:win:private` e envie pela entrada padrão um JSON com `token` e `baseUrl`. A credencial não deve ser colocada no código-fonte. Na primeira abertura, o aplicativo copia o token provisionado para o armazenamento seguro e criptografado do Windows.
 

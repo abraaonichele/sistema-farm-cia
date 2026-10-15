@@ -65,8 +65,11 @@ async function readTrierConfig() {
     }
   }
 
+  const storedBaseUrl = stored.baseUrl && stored.baseUrl !== TRIER_DEFAULT_BASE_URL
+    ? stored.baseUrl
+    : bundled.baseUrl || stored.baseUrl;
   const baseUrl = normalizeTrierBaseUrl(
-    process.env.TRIER_API_BASE_URL || stored.baseUrl || bundled.baseUrl || TRIER_DEFAULT_BASE_URL,
+    process.env.TRIER_API_BASE_URL || storedBaseUrl || TRIER_DEFAULT_BASE_URL,
   );
   const token = environmentToken || storedToken || bundled.token;
 
