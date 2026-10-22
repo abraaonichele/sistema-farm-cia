@@ -767,6 +767,11 @@ button {
 /* Modal de atualização */
 .modal-update {
   max-width: 480px;
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  overflow: visible;
+  border-radius: 16px;
 }
 
 .update-content {
@@ -1257,11 +1262,11 @@ button {
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: stretch;
-  padding: 0;
-  background: rgba(18, 29, 48, 0.3);
+  place-items: center;
+  padding: 24px;
+  background: rgba(18, 29, 48, 0.45);
   backdrop-filter: blur(14px);
-  z-index: 100;
+  z-index: 9999;
 }
 
 .hidden {
