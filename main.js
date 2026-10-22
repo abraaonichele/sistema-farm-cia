@@ -3507,7 +3507,59 @@
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="spin"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
       <span>Verificando...</span>
     `;
-    window.electronAPI.updateCheck();
+
+    let modalOpened = false;
+    const openModalWithInfo = (info) => {
+      if (modalOpened) return;
+      modalOpened = true;
+      elements.checkUpdatesButton.disabled = false;
+      elements.checkUpdatesButton.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+        <span>Verificar atualização</span>
+      `;
+
+      if (info.error) {
+        elements.updateVersion.textContent = "Erro ao verificar";
+        elements.updateNotes.innerHTML = `<p>${escapeHtml(info.error)}</p>`;
+        elements.updateProgress.classList.add("hidden");
+        elements.updateError.classList.remove("hidden");
+        elements.updateError.textContent = info.error;
+        elements.updateDownload.classList.add("hidden");
+        elements.updateInstall.classList.add("hidden");
+      } else if (info.updateInfo) {
+        elements.updateVersion.textContent = `Versão ${info.updateInfo.version} disponível`;
+        elements.updateNotes.innerHTML = info.updateInfo.releaseNotes
+          ? info.updateInfo.releaseNotes.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join("")
+          : "<p>Novidades não disponíveis.</p>";
+        elements.updateProgress.classList.add("hidden");
+        elements.updateError.classList.add("hidden");
+        elements.updateDownload.classList.remove("hidden");
+        elements.updateInstall.classList.add("hidden");
+      } else {
+        elements.updateVersion.textContent = "Você está na versão mais recente";
+        elements.updateNotes.innerHTML = "<p>Nenhuma atualização disponível no momento.</p>";
+        elements.updateProgress.classList.add("hidden");
+        elements.updateError.classList.add("hidden");
+        elements.updateDownload.classList.add("hidden");
+        elements.updateInstall.classList.add("hidden");
+      }
+      openModal(elements.updateModal);
+    };
+
+    // Timeout fallback (10s)
+    const timeout = setTimeout(() => {
+      openModalWithInfo({ error: "Tempo esgotado ao verificar atualização." });
+    }, 10000);
+
+    window.electronAPI.updateCheck()
+      .then((result) => {
+        clearTimeout(timeout);
+        openModalWithInfo(result);
+      })
+      .catch((err) => {
+        clearTimeout(timeout);
+        openModalWithInfo({ error: err?.message || "Erro ao verificar atualização." });
+      });
   }
 
   function renderDoctorsList() {
