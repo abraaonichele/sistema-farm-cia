@@ -87,18 +87,55 @@ function sanitizeTrierProduct(product) {
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
   };
+  const activeIngredientValue = product?.principioAtivo
+    ?? product?.nomePrincipioAtivo
+    ?? product?.descricaoPrincipioAtivo
+    ?? product?.principiosAtivos
+    ?? product?.composicao;
+  const activeIngredient = Array.isArray(activeIngredientValue)
+    ? activeIngredientValue.map((item) => typeof item === "string" ? item : item?.nome || item?.descricao || "")
+      .filter(Boolean)
+      .join(", ")
+    : typeof activeIngredientValue === "string"
+      ? activeIngredientValue
+      : String(activeIngredientValue?.nome || activeIngredientValue?.descricao || "").trim();
+  const regularSalePrice = numberOrNull(product?.valorVenda) ?? 0;
   return {
     code: String(product?.codigo ?? ""),
     barcode: String(product?.codigoBarras ?? ""),
     name: String(product?.nome || "Produto sem nome").trim(),
     unit: String(product?.unidade || "UN").trim(),
     stock: numberOrNull(product?.quantidadeEstoque) ?? 0,
-    salePrice: numberOrNull(product?.valorVenda) ?? 0,
+    salePrice: regularSalePrice,
+    regularSalePrice,
+    hasDiscount: false,
     costPrice: numberOrNull(product?.valorCusto),
     averageCost: numberOrNull(product?.valorCustoMedio),
-    laboratory: String(product?.nomeLaboratorio || "").trim(),
+    laboratory: String(product?.nomeLaboratorio || product?.laboratorio || product?.nomeLaboratorioFabricante || "").trim(),
+    activeIngredient,
     active: product?.ativo !== false,
   };
+}
+
+async function fetchTrierProductDiscounts(baseUrl, token, { pageSize, maxProducts }) {
+  const discountsByCode = new Map();
+  for (let offset = 0; offset < maxProducts; offset += pageSize) {
+    const url = new URL(`${baseUrl}/rest/integracao/produto/desconto/melhor/obter-v1`);
+    url.searchParams.set("considerarTodasCondicoesPagamento", "true");
+    url.searchParams.set("removerRestricaoEstoque", "true");
+    url.searchParams.set("primeiroRegistro", String(offset));
+    url.searchParams.set("quantidadeRegistros", String(pageSize));
+    const page = await requestTrierJson(url.toString(), token);
+    if (!Array.isArray(page)) throw new Error("A API Trier não devolveu uma lista de descontos válida.");
+    for (const discount of page) {
+      const code = String(discount?.codigoProduto ?? "");
+      const price = Number(discount?.valorPromocao);
+      if (code && Number.isFinite(price) && price > 0) discountsByCode.set(code, price);
+    }
+    if (page.length < pageSize) return discountsByCode;
+  }
+
+  throw new Error(`A consulta de descontos Trier excedeu o limite de ${maxProducts} registros.`);
 }
 
 async function fetchTrierProducts(config, options = {}) {
@@ -122,7 +159,20 @@ async function fetchTrierProducts(config, options = {}) {
     const page = await requestTrierJson(url.toString(), token);
     if (!Array.isArray(page)) throw new Error("A API Trier não devolveu uma lista de produtos válida.");
     products.push(...page.map(sanitizeTrierProduct));
-    if (page.length < pageSize) return products;
+    if (page.length < pageSize) {
+      const discountsByCode = await fetchTrierProductDiscounts(baseUrl, token, { pageSize, maxProducts });
+      return products.map((product) => {
+        const discountedPrice = discountsByCode.get(product.code);
+        const hasDiscount = Number.isFinite(discountedPrice)
+          && discountedPrice > 0
+          && discountedPrice < product.regularSalePrice;
+        return {
+          ...product,
+          salePrice: hasDiscount ? discountedPrice : product.regularSalePrice,
+          hasDiscount,
+        };
+      });
+    }
   }
 
   throw new Error(`A sincronização excedeu o limite de ${maxProducts} produtos.`);
@@ -153,7 +203,15 @@ async function loadTrierProductCache(cachePath, expectedBaseUrl) {
       throw new Error("O cache local da Trier está inválido.");
     }
     if (baseUrl !== normalizeTrierBaseUrl(expectedBaseUrl)) return null;
-    return { products: cache.products, syncedAt, baseUrl };
+    return {
+      products: cache.products.map((product) => ({
+        ...product,
+        regularSalePrice: Number.isFinite(product.regularSalePrice) ? product.regularSalePrice : product.salePrice,
+        hasDiscount: typeof product.hasDiscount === "boolean" ? product.hasDiscount : false,
+      })),
+      syncedAt,
+      baseUrl,
+    };
   } finally {
     await cacheFile.close();
   }
@@ -199,9 +257,12 @@ function isSanitizedTrierProduct(product) {
     && typeof product.unit === "string"
     && Number.isFinite(product.stock)
     && Number.isFinite(product.salePrice)
+    && (product.regularSalePrice === undefined || Number.isFinite(product.regularSalePrice))
+    && (product.hasDiscount === undefined || typeof product.hasDiscount === "boolean")
     && (product.costPrice === null || Number.isFinite(product.costPrice))
     && (product.averageCost === null || Number.isFinite(product.averageCost))
     && typeof product.laboratory === "string"
+    && (product.activeIngredient === undefined || typeof product.activeIngredient === "string")
     && typeof product.active === "boolean";
 }
 

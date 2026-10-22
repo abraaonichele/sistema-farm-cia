@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld("desktopTrier", {
   getConfig: () => ipcRenderer.invoke("trier:get-config"),
   saveConfig: (config) => ipcRenderer.invoke("trier:save-config", config),
   getProducts: (forceRefresh = false) => ipcRenderer.invoke("trier:get-products", { forceRefresh }),
+  sendSale: (sale) => ipcRenderer.invoke("trier:send-sale", sale),
   onProductsUpdated: (callback) => {
     if (typeof callback !== "function") throw new TypeError("O callback da Trier precisa ser uma função.");
     const listener = (_event, result) => callback(result);
@@ -42,5 +43,35 @@ contextBridge.exposeInMainWorld("desktopTrier", {
     const listener = (_event, result) => callback(result);
     ipcRenderer.on("trier:sync-error", listener);
     return () => ipcRenderer.removeListener("trier:sync-error", listener);
+  },
+});
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  updateCheck: () => ipcRenderer.invoke("update:check"),
+  updateDownload: () => ipcRenderer.invoke("update:download"),
+  updateInstall: () => ipcRenderer.invoke("update:install"),
+  onUpdateChecking: (callback) => {
+    ipcRenderer.on("update:checking", callback);
+    return () => ipcRenderer.removeListener("update:checking", callback);
+  },
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on("update:available", callback);
+    return () => ipcRenderer.removeListener("update:available", callback);
+  },
+  onUpdateNotAvailable: (callback) => {
+    ipcRenderer.on("update:not-available", callback);
+    return () => ipcRenderer.removeListener("update:not-available", callback);
+  },
+  onUpdateError: (callback) => {
+    ipcRenderer.on("update:error", callback);
+    return () => ipcRenderer.removeListener("update:error", callback);
+  },
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on("update:progress", callback);
+    return () => ipcRenderer.removeListener("update:progress", callback);
+  },
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on("update:downloaded", callback);
+    return () => ipcRenderer.removeListener("update:downloaded", callback);
   },
 });

@@ -8,7 +8,7 @@
       name="description"
       content="Dashboard de aplicações e cadastro de pacientes para clínica de injetáveis."
     />
-    <link rel="stylesheet" href="./styles.css?v=37" />
+    <link rel="stylesheet" href="./styles.css?v=41" />
     <link rel="stylesheet" href="./offer-template.css?v=22" />
   </head>
   <body>
@@ -85,6 +85,10 @@
                 <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5h2l2.4 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H7" /><circle cx="10" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /></svg></span>
                 <span class="sidebar-text">Compras</span>
               </button>
+              <button class="sidebar-item" type="button" id="open-cashback">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5c-.7-.7-1.8-1-3-1-1.7 0-3 .8-3 2s1.3 1.8 3 2 3 .8 3 2-1.3 2-3 2c-1.2 0-2.4-.4-3.2-1.2M12 5v14" /></svg></span>
+                <span class="sidebar-text">CashBack</span>
+              </button>
               <button class="sidebar-item" type="button" id="open-pricing">
                 <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 13 11 22l-9-9V4a2 2 0 0 1 2-2h9z" /><circle cx="8" cy="8" r="1.5" /></svg></span>
                 <span class="sidebar-text">Precificação</span>
@@ -125,6 +129,40 @@
 
         <div class="sidebar-footer">
           <span class="user-chip sidebar-user" id="current-user-label">-</span>
+          <button class="button button-secondary update-check-button hidden" id="check-updates" type="button" title="Verificar atualizações">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+            <span>Verificar atualização</span>
+          </button>
+        </div>
+
+        <!-- Modal de atualização -->
+        <div class="modal-overlay hidden" id="update-modal" aria-hidden="true">
+          <div class="modal-card modal-update" role="dialog" aria-modal="true" aria-labelledby="update-title">
+            <header class="modal-header">
+              <div class="modal-title-wrap">
+                <div class="modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg></div>
+                <div>
+                  <p class="section-label">Sistema</p>
+                  <h2 id="update-title">Atualização disponível</h2>
+                </div>
+              </div>
+              <button class="icon-button" id="close-update-modal" aria-label="Fechar">×</button>
+            </header>
+            <div class="update-content">
+              <div class="update-version" id="update-version"></div>
+              <div class="update-notes" id="update-notes"></div>
+              <div class="update-progress hidden" id="update-progress">
+                <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                <span class="progress-text" id="progress-text">Baixando...</span>
+              </div>
+              <div class="update-error hidden" id="update-error"></div>
+            </div>
+            <footer class="modal-footer">
+              <button class="button button-secondary" id="update-cancel" type="button">Depois</button>
+              <button class="button button-primary" id="update-download" type="button">Baixar e instalar</button>
+              <button class="button button-primary hidden" id="update-install" type="button">Instalar e reiniciar</button>
+            </footer>
+          </div>
         </div>
       </aside>
 
@@ -798,12 +836,19 @@
               <p class="purchases-intro">Organize produtos em falta e encomendas de clientes.</p>
             </div>
           </div>
-          <button class="icon-button" id="close-purchases" aria-label="Fechar compras">×</button>
+          <div class="purchases-header-actions">
+            <button class="button button-secondary purchases-refresh-button" id="refresh-purchases" type="button" aria-label="Atualizar compras e encomendas" title="Atualizar informações">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2" /></svg>
+              <span>Atualizar</span>
+            </button>
+            <button class="icon-button" id="close-purchases" aria-label="Fechar compras">×</button>
+          </div>
         </header>
 
         <div class="purchases-tabs" role="tablist" aria-label="Seções de compras">
           <button class="purchases-tab is-active" type="button" role="tab" aria-selected="true" data-purchases-tab="shortages">Comprar faltas</button>
           <button class="purchases-tab" type="button" role="tab" aria-selected="false" data-purchases-tab="orders">Encomenda</button>
+          <button class="purchases-tab" type="button" role="tab" aria-selected="false" data-purchases-tab="completed-orders">Encomendas concluídas</button>
         </div>
 
         <section class="purchases-panel" data-purchases-panel="shortages">
@@ -821,6 +866,10 @@
                 <input id="shortage-product" type="text" placeholder="Ex.: Vitamina B12" required />
               </label>
               <label class="field">
+                <span>EAN</span>
+                <input id="shortage-ean" type="text" inputmode="numeric" autocomplete="off" placeholder="Código de barras" />
+              </label>
+              <label class="field">
                 <span>Quantidade</span>
                 <input id="shortage-quantity" type="number" min="1" step="1" placeholder="0" required />
               </label>
@@ -828,7 +877,10 @@
                 <span>Data que zerou o estoque</span>
                 <input id="shortage-date" type="date" required />
               </label>
-              <button class="button button-primary purchases-submit" type="submit">Adicionar falta</button>
+              <div class="purchase-form-actions">
+                <button class="button button-primary purchases-submit" id="shortage-submit" type="submit">Adicionar falta</button>
+                <button class="button button-secondary purchases-cancel-edit hidden" id="shortage-cancel-edit" type="button">Cancelar</button>
+              </div>
             </form>
           </div>
           <div class="purchases-list" id="shortages-list" aria-live="polite"></div>
@@ -861,14 +913,144 @@
                 <input id="order-product" type="text" placeholder="Produto encomendado" required />
               </label>
               <label class="field">
+                <span>EAN</span>
+                <input id="order-ean" type="text" inputmode="numeric" autocomplete="off" placeholder="Código de barras" />
+              </label>
+              <label class="field">
                 <span>Quantidade</span>
                 <input id="order-quantity" type="number" min="1" step="1" placeholder="0" required />
               </label>
-              <button class="button button-primary purchases-submit" type="submit">Adicionar encomenda</button>
+              <div class="purchase-form-actions">
+                <button class="button button-primary purchases-submit" id="order-submit" type="submit">Adicionar encomenda</button>
+                <button class="button button-secondary purchases-cancel-edit hidden" id="order-cancel-edit" type="button">Cancelar</button>
+              </div>
             </form>
           </div>
           <div class="purchases-list" id="orders-list" aria-live="polite"></div>
         </section>
+
+        <section class="purchases-panel hidden" data-purchases-panel="completed-orders">
+          <div class="purchases-card">
+            <div class="purchases-card-heading">
+              <div>
+                <p class="section-label">Pedidos finalizados</p>
+                <h3>Encomendas concluídas</h3>
+              </div>
+              <span class="purchases-count" id="completed-orders-count">0 encomendas</span>
+            </div>
+          </div>
+          <div class="purchases-list" id="completed-orders-list" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="cashback-modal" aria-hidden="true">
+      <div class="modal-card modal-cashback" role="dialog" aria-modal="true" aria-labelledby="cashback-title">
+        <header class="modal-header cashback-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt cashback-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5c-.7-.7-1.8-1-3-1-1.7 0-3 .8-3 2s1.3 1.8 3 2 3 .8 3 2-1.3 2-3 2c-1.2 0-2.4-.4-3.2-1.2M12 5v14" /></svg></div>
+            <div>
+              <p class="section-label">Relacionamento com clientes</p>
+              <h2 id="cashback-title">CashBack</h2>
+              <p class="cashback-intro">Cadastre créditos, acompanhe os vencimentos e avise seus clientes pelo WhatsApp.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-cashback" aria-label="Fechar CashBack">×</button>
+        </header>
+
+        <section class="cashback-form-card">
+          <div class="cashback-section-heading">
+            <div>
+              <p class="section-label">Novo lançamento</p>
+              <h3 id="cashback-form-title">Cadastrar cliente e CashBack</h3>
+            </div>
+            <div class="cashback-calculated" aria-live="polite">
+              <span>CashBack calculado</span>
+              <strong id="cashback-value-preview">R$ 0,00</strong>
+            </div>
+          </div>
+          <form class="cashback-form" id="cashback-form">
+            <label class="field cashback-name-field">
+              <span>Nome</span>
+              <input id="cashback-name" type="text" autocomplete="name" placeholder="Nome completo" required />
+            </label>
+            <label class="field">
+              <span>CPF</span>
+              <input id="cashback-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" required />
+            </label>
+            <label class="field">
+              <span>Telefone</span>
+              <input id="cashback-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" required />
+            </label>
+            <label class="field cashback-credit-field">
+              <span>Data da venda</span>
+              <input id="cashback-sale-date" type="date" required />
+            </label>
+            <label class="field cashback-credit-field">
+              <span>Valor da compra</span>
+              <input id="cashback-purchase-value" type="text" inputmode="decimal" placeholder="R$ 0,00" required />
+            </label>
+            <label class="field cashback-credit-field">
+              <span>% em CashBack</span>
+              <input id="cashback-percent" type="text" inputmode="decimal" placeholder="Ex.: 5" required />
+            </label>
+            <label class="field cashback-credit-field">
+              <span>Validade (dias)</span>
+              <input id="cashback-validity-days" type="number" min="1" step="1" value="30" required />
+              <small class="cashback-expiration-preview" id="cashback-expiration-preview" aria-live="polite"></small>
+            </label>
+            <div class="cashback-form-actions">
+              <button class="button button-primary" type="submit" id="cashback-submit">Adicionar CashBack</button>
+              <button class="button button-secondary hidden" type="button" id="cashback-cancel-prefill">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="cashback-management">
+          <div class="cashback-toolbar">
+            <label class="cashback-search-wrap" for="cashback-search">
+              <span class="cashback-search-icon" aria-hidden="true">⌕</span>
+              <input id="cashback-search" type="search" autocomplete="off" placeholder="Pesquisar por nome, CPF ou telefone" />
+            </label>
+            <div class="cashback-filter-wrap">
+              <button class="button button-secondary cashback-filter-toggle" id="cashback-filter-toggle" type="button" aria-expanded="false" aria-controls="cashback-filter-menu">
+                <span id="cashback-filter-label">Filtrar vencimento</span>
+                <span aria-hidden="true">⌄</span>
+              </button>
+              <div class="cashback-filter-menu hidden" id="cashback-filter-menu">
+                <button type="button" data-cashback-filter="10">Vencimento em 10 dias</button>
+                <button type="button" data-cashback-filter="30">Vencimento em 30 dias</button>
+                <button type="button" data-cashback-filter="all">Remover filtros</button>
+              </div>
+            </div>
+            <span class="cashback-count" id="cashback-count">0 clientes</span>
+          </div>
+          <div class="cashback-active-filter hidden" id="cashback-active-filter"></div>
+          <div class="cashback-client-list" id="cashback-client-list" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden cashback-message-overlay" id="cashback-message-modal" aria-hidden="true">
+      <div class="modal-card modal-compact cashback-message-card" role="dialog" aria-modal="true" aria-labelledby="cashback-message-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon whatsapp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-5A8.4 8.4 0 1 1 20.5 11.6Z" /><path d="M8.2 7.5c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.5l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.5.9 1.3 1.7 2.2 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.3.5.6 0 .3-.2 1.5-.8 2.1-.6.6-1.5.8-2.4.6-1.1-.3-2.8-1-4.7-2.7-1.5-1.4-2.6-3.1-2.9-4.2-.3-.8 0-1.6.5-2.1Z" /></svg></div>
+            <div>
+              <p class="section-label">Mensagem pronta</p>
+              <h2 id="cashback-message-title">Selecionar CashBacks</h2>
+              <p class="cashback-message-intro" id="cashback-message-client">Escolha os créditos que serão enviados.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-cashback-message" aria-label="Fechar seleção">×</button>
+        </header>
+        <div class="cashback-message-options" id="cashback-message-options"></div>
+        <div class="cashback-message-preview" id="cashback-message-preview" aria-live="polite"></div>
+        <footer class="modal-footer cashback-message-actions">
+          <button class="button button-secondary" type="button" id="cancel-cashback-message">Cancelar</button>
+          <button class="button button-secondary" type="button" id="copy-cashback-message" disabled>Copiar mensagem</button>
+          <button class="button cashback-whatsapp-button" type="button" id="send-cashback-message">Abrir WhatsApp</button>
+        </footer>
       </div>
     </div>
 
@@ -916,19 +1098,19 @@
               <div class="quote-search-wrap">
                 <label class="field field-full">
                   <span>Produto</span>
-                  <input id="quote-product-search" type="search" autocomplete="off" placeholder="Digite o nome ou leia o código de barras" required />
+                  <input id="quote-product-search" type="text" autocomplete="off" placeholder="Digite o nome ou leia o código de barras" />
                 </label>
                 <div class="quote-search-results hidden" id="quote-search-results" role="listbox" aria-label="Produtos encontrados"></div>
               </div>
               <label class="field">
                 <span>Quantidade</span>
-                <input id="quote-product-quantity" type="number" min="1" step="1" value="1" required />
+                <input id="quote-product-quantity" type="number" min="1" step="1" value="1" />
               </label>
               <label class="field">
                 <span>Valor unitário final</span>
-                <div class="quote-money-input"><span>R$</span><input id="quote-product-price" type="text" inputmode="decimal" placeholder="0,00" required /></div>
+                <div class="quote-money-input"><span>R$</span><input id="quote-product-price" type="text" inputmode="decimal" placeholder="0,00" /></div>
               </label>
-              <button class="button button-primary quote-add-product" type="submit" disabled>Adicionar ao orçamento</button>
+              <button class="button button-primary quote-add-product" type="button" disabled>Adicionar ao orçamento</button>
             </form>
 
             <article class="quote-selected-product hidden" id="quote-selected-product" aria-live="polite"></article>
@@ -950,6 +1132,10 @@
               <span>Nome do cliente (opcional)</span>
               <input id="quote-customer-name" type="text" placeholder="Ex.: Maria" />
             </label>
+            <label class="field field-full">
+              <span>CPF do cliente (opcional)</span>
+              <input id="quote-customer-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="11 dígitos" />
+            </label>
             <div class="quote-summary-line"><span>Itens</span><strong id="quote-items-count">0</strong></div>
             <div class="quote-summary-total"><span>Total</span><strong id="quote-total">R$ 0,00</strong></div>
             <p class="quote-summary-note">O preço ajustado será usado apenas neste orçamento e não altera o cadastro na Trier.</p>
@@ -958,10 +1144,34 @@
               Enviar pelo WhatsApp
             </button>
             <button class="button button-secondary quote-copy-button" id="copy-whatsapp-quote" type="button" disabled>Copiar mensagem</button>
+            <button class="button button-primary quote-pdv-button" id="send-pdv-quote" type="button" disabled>Enviar orçamento ao PDV</button>
+            <p class="quote-pdv-status hidden" id="quote-pdv-status" role="status" aria-live="polite"></p>
+            <p class="quote-pdv-note">O pedido será criado no PDV, sem concluir o pagamento. Para vincular o cliente, informe nome e CPF. A equipe confirma a venda no caixa.</p>
             <button class="quote-clear-button" id="clear-whatsapp-quote" type="button" disabled>Limpar orçamento</button>
           </aside>
         </div>
       </div>
+    </div>
+
+    <div class="modal-overlay quote-product-chooser-overlay hidden" id="quote-product-chooser-modal" aria-hidden="true">
+      <section class="modal-card quote-product-chooser-card" role="dialog" aria-modal="true" aria-labelledby="quote-product-chooser-title">
+        <header class="quote-product-chooser-header">
+          <div>
+            <h2 id="quote-product-chooser-title">Produtos encontrados</h2>
+          </div>
+          <button class="icon-button" id="close-quote-product-chooser" type="button" aria-label="Fechar seleção de produtos">×</button>
+        </header>
+        <label class="field quote-product-chooser-search">
+          <span>Produto</span>
+          <input id="quote-product-chooser-search" type="search" autocomplete="off" />
+        </label>
+        <div class="quote-product-chooser-layout">
+          <div class="quote-product-chooser-results" id="quote-product-chooser-results" role="region" aria-label="Opções de produtos"></div>
+          <section class="quote-product-chooser-detail hidden" id="quote-product-chooser-detail" aria-live="polite">
+            <div class="quote-product-chooser-placeholder">Escolha um produto na lista para ver preço de custo, preço de venda, estoque, código e EAN.</div>
+          </section>
+        </div>
+      </section>
     </div>
 
     <div class="modal-overlay hidden" id="pricing-modal" aria-hidden="true">
@@ -2192,6 +2402,6 @@
         document.write('<script src="./bulas-medicamentos/ean-medicine-aliases.generated.js"><\/script>');
       }
     </script>
-    <script src="./main.js?v=47"></script>
+    <script src="./main.js?v=51"></script>
   </body>
 </html>

@@ -40,6 +40,7 @@
     pricingTabs: "pricingTabs",
     purchaseShortages: "purchaseShortages",
     purchaseOrders: "purchaseOrders",
+    cashbackClients: "cashbackClients",
   };
 
   const PUBLIC_OFFERS_BASE_URL = "https://farmaciaofertas.web.app/oferta";
@@ -509,6 +510,15 @@
     pricingTabs: [],
     purchaseShortages: [],
     purchaseOrders: [],
+    completedPurchaseOrders: [],
+    editingPurchaseShortageId: "",
+    editingPurchaseOrderId: "",
+    cashbackClients: [],
+    cashbackSearch: "",
+    cashbackExpirationFilter: "all",
+    cashbackMessageClientId: "",
+    cashbackFormMode: "create",
+    cashbackFormClientId: "",
     activePricingTabId: "default",
     offerImageDataUrl: "",
     offerOriginalImageDataUrl: "",
@@ -558,7 +568,12 @@
     trierProductsSyncedAt: "",
     trierSyncError: "",
     selectedQuoteProduct: null,
+    quoteProductChooserMatches: [],
+    selectedQuoteChooserIndex: -1,
     whatsappQuoteItems: [],
+    quotePdvOrderId: "",
+    quotePdvSale: null,
+    submittingQuoteToPdv: false,
   };
 
   const elements = {
@@ -581,6 +596,18 @@
     loginPassword: document.getElementById("login-password"),
     currentUserLabel: document.getElementById("current-user-label"),
     logoutButton: document.getElementById("logout-button"),
+    checkUpdatesButton: document.getElementById("check-updates"),
+    updateModal: document.getElementById("update-modal"),
+    closeUpdateModal: document.getElementById("close-update-modal"),
+    updateVersion: document.getElementById("update-version"),
+    updateNotes: document.getElementById("update-notes"),
+    updateProgress: document.getElementById("update-progress"),
+    progressFill: document.getElementById("progress-fill"),
+    progressText: document.getElementById("progress-text"),
+    updateError: document.getElementById("update-error"),
+    updateCancel: document.getElementById("update-cancel"),
+    updateDownload: document.getElementById("update-download"),
+    updateInstall: document.getElementById("update-install"),
     topbarLogout: document.getElementById("topbar-logout"),
     openAccount: document.getElementById("open-account"),
     openMedicines: document.getElementById("open-medicines"),
@@ -588,6 +615,7 @@
     openUsers: document.getElementById("open-users"),
     openDoctors: document.getElementById("open-doctors"),
     openPurchases: document.getElementById("open-purchases"),
+    openCashback: document.getElementById("open-cashback"),
     openPricing: document.getElementById("open-pricing"),
     openOfferSheet: document.getElementById("open-offer-sheet"),
     openOnlineOffers: document.getElementById("open-online-offers"),
@@ -730,12 +758,16 @@
     doctorLookupContinue: document.getElementById("doctor-lookup-continue"),
     purchasesModal: document.getElementById("purchases-modal"),
     closePurchases: document.getElementById("close-purchases"),
+    refreshPurchases: document.getElementById("refresh-purchases"),
     purchasesTabs: Array.from(document.querySelectorAll("[data-purchases-tab]")),
     purchasesPanels: Array.from(document.querySelectorAll("[data-purchases-panel]")),
     shortageForm: document.getElementById("shortage-form"),
     shortageProduct: document.getElementById("shortage-product"),
+    shortageEan: document.getElementById("shortage-ean"),
     shortageQuantity: document.getElementById("shortage-quantity"),
     shortageDate: document.getElementById("shortage-date"),
+    shortageSubmit: document.getElementById("shortage-submit"),
+    shortageCancelEdit: document.getElementById("shortage-cancel-edit"),
     shortagesCount: document.getElementById("shortages-count"),
     shortagesList: document.getElementById("shortages-list"),
     orderForm: document.getElementById("order-form"),
@@ -743,9 +775,45 @@
     orderDate: document.getElementById("order-date"),
     orderPhone: document.getElementById("order-phone"),
     orderProduct: document.getElementById("order-product"),
+    orderEan: document.getElementById("order-ean"),
     orderQuantity: document.getElementById("order-quantity"),
+    orderSubmit: document.getElementById("order-submit"),
+    orderCancelEdit: document.getElementById("order-cancel-edit"),
     ordersCount: document.getElementById("orders-count"),
     ordersList: document.getElementById("orders-list"),
+    completedOrdersCount: document.getElementById("completed-orders-count"),
+    completedOrdersList: document.getElementById("completed-orders-list"),
+    cashbackModal: document.getElementById("cashback-modal"),
+    closeCashback: document.getElementById("close-cashback"),
+    cashbackForm: document.getElementById("cashback-form"),
+    cashbackFormTitle: document.getElementById("cashback-form-title"),
+    cashbackName: document.getElementById("cashback-name"),
+    cashbackCpf: document.getElementById("cashback-cpf"),
+    cashbackPhone: document.getElementById("cashback-phone"),
+    cashbackSaleDate: document.getElementById("cashback-sale-date"),
+    cashbackPurchaseValue: document.getElementById("cashback-purchase-value"),
+    cashbackPercent: document.getElementById("cashback-percent"),
+    cashbackValidityDays: document.getElementById("cashback-validity-days"),
+    cashbackExpirationPreview: document.getElementById("cashback-expiration-preview"),
+    cashbackCalculated: document.querySelector(".cashback-calculated"),
+    cashbackValuePreview: document.getElementById("cashback-value-preview"),
+    cashbackSubmit: document.getElementById("cashback-submit"),
+    cashbackCancelPrefill: document.getElementById("cashback-cancel-prefill"),
+    cashbackSearch: document.getElementById("cashback-search"),
+    cashbackFilterToggle: document.getElementById("cashback-filter-toggle"),
+    cashbackFilterLabel: document.getElementById("cashback-filter-label"),
+    cashbackFilterMenu: document.getElementById("cashback-filter-menu"),
+    cashbackActiveFilter: document.getElementById("cashback-active-filter"),
+    cashbackCount: document.getElementById("cashback-count"),
+    cashbackClientList: document.getElementById("cashback-client-list"),
+    cashbackMessageModal: document.getElementById("cashback-message-modal"),
+    closeCashbackMessage: document.getElementById("close-cashback-message"),
+    cancelCashbackMessage: document.getElementById("cancel-cashback-message"),
+    cashbackMessageClient: document.getElementById("cashback-message-client"),
+    cashbackMessageOptions: document.getElementById("cashback-message-options"),
+    cashbackMessagePreview: document.getElementById("cashback-message-preview"),
+    copyCashbackMessage: document.getElementById("copy-cashback-message"),
+    sendCashbackMessage: document.getElementById("send-cashback-message"),
     whatsappQuoteModal: document.getElementById("whatsapp-quote-modal"),
     closeWhatsappQuote: document.getElementById("close-whatsapp-quote"),
     trierStatus: document.getElementById("trier-status"),
@@ -759,6 +827,11 @@
     quoteProductForm: document.getElementById("quote-product-form"),
     quoteProductSearch: document.getElementById("quote-product-search"),
     quoteSearchResults: document.getElementById("quote-search-results"),
+    quoteProductChooserModal: document.getElementById("quote-product-chooser-modal"),
+    closeQuoteProductChooser: document.getElementById("close-quote-product-chooser"),
+    quoteProductChooserSearch: document.getElementById("quote-product-chooser-search"),
+    quoteProductChooserResults: document.getElementById("quote-product-chooser-results"),
+    quoteProductChooserDetail: document.getElementById("quote-product-chooser-detail"),
     quoteProductQuantity: document.getElementById("quote-product-quantity"),
     quoteProductPrice: document.getElementById("quote-product-price"),
     quoteAddProduct: document.querySelector(".quote-add-product"),
@@ -766,10 +839,13 @@
     quoteProductsEmpty: document.getElementById("quote-products-empty"),
     quoteItems: document.getElementById("quote-items"),
     quoteCustomerName: document.getElementById("quote-customer-name"),
+    quoteCustomerCpf: document.getElementById("quote-customer-cpf"),
     quoteItemsCount: document.getElementById("quote-items-count"),
     quoteTotal: document.getElementById("quote-total"),
     sendWhatsappQuote: document.getElementById("send-whatsapp-quote"),
     copyWhatsappQuote: document.getElementById("copy-whatsapp-quote"),
+    sendPdvQuote: document.getElementById("send-pdv-quote"),
+    quotePdvStatus: document.getElementById("quote-pdv-status"),
     clearWhatsappQuote: document.getElementById("clear-whatsapp-quote"),
     pricingModal: document.getElementById("pricing-modal"),
     closePricing: document.getElementById("close-pricing"),
@@ -1162,7 +1238,7 @@
   }
 
   async function initializeFirestoreState() {
-    const [patients, applications, bioRecords, clinicalRecords, doctors, users, pricingProducts, pricingSettings, pricingTabs, purchaseShortages, purchaseOrders] = await Promise.all([
+    const [patients, applications, bioRecords, clinicalRecords, doctors, users, pricingProducts, pricingSettings, pricingTabs, purchaseShortages, purchaseOrders, cashbackClients] = await Promise.all([
       loadCollection(FIRESTORE_COLLECTIONS.patients),
       loadCollection(FIRESTORE_COLLECTIONS.applications),
       loadCollection(FIRESTORE_COLLECTIONS.bioRecords),
@@ -1174,6 +1250,7 @@
       loadCollection(FIRESTORE_COLLECTIONS.pricingTabs),
       loadCollection(FIRESTORE_COLLECTIONS.purchaseShortages),
       loadCollection(FIRESTORE_COLLECTIONS.purchaseOrders),
+      loadCollection(FIRESTORE_COLLECTIONS.cashbackClients),
     ]);
 
     state.patients = patients;
@@ -1188,7 +1265,9 @@
       ? pricingTabs
       : [{ id: "default", name: "Precificação principal" }, ...pricingTabs];
     state.purchaseShortages = purchaseShortages;
-    state.purchaseOrders = purchaseOrders;
+    state.purchaseOrders = purchaseOrders.filter((order) => !order.completedAt);
+    state.completedPurchaseOrders = purchaseOrders.filter((order) => order.completedAt);
+    state.cashbackClients = cashbackClients.map(sanitizeCashbackClient);
 
     await seedFirestoreData();
     await ensureSeedUsers();
@@ -3226,9 +3305,14 @@
     textarea.style.position = "fixed";
     textarea.style.opacity = "0";
     document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand("copy");
-    textarea.remove();
+    try {
+      textarea.select();
+      if (!document.execCommand("copy")) {
+        throw new Error("O navegador não permitiu copiar o texto.");
+      }
+    } finally {
+      textarea.remove();
+    }
   }
 
   function getInitials(name) {
@@ -3457,6 +3541,13 @@
     return new Intl.DateTimeFormat("pt-BR").format(date);
   }
 
+  function formatPurchaseDateTime(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
+  }
+
   function formatPurchasePhone(value) {
     const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
     if (digits.length <= 2) return digits ? `(${digits}` : "";
@@ -3490,10 +3581,11 @@
       <article class="purchase-item">
         <div class="purchase-item-main">
           <strong>${escapeHtml(item.product)}</strong>
-          <span>Quantidade: ${escapeHtml(item.quantity)}</span>
+          <span>Quantidade: ${escapeHtml(item.quantity)}${item.ean ? ` • EAN: ${escapeHtml(item.ean)}` : ""}</span>
         </div>
         <span class="purchase-item-detail">Estoque zerado em ${formatPurchaseDate(item.outOfStockDate)}</span>
         <div class="purchase-item-actions">
+          <button class="purchase-edit" type="button" data-purchase-action="edit-shortage" data-purchase-id="${item.id}" aria-label="Editar ${escapeHtml(item.product)}" title="Editar item">✎</button>
           <button class="purchase-remove" type="button" data-purchase-action="remove-shortage" data-purchase-id="${item.id}" aria-label="Remover ${escapeHtml(item.product)}" title="Remover item">×</button>
         </div>
       </article>
@@ -3525,7 +3617,7 @@
         <article class="purchase-item">
           <div class="purchase-item-main">
             <strong>${escapeHtml(item.product)}</strong>
-            <span>Quantidade: ${escapeHtml(item.quantity)} • Compra em ${formatPurchaseDate(item.purchaseDate)}</span>
+            <span>Quantidade: ${escapeHtml(item.quantity)}${item.ean ? ` • EAN: ${escapeHtml(item.ean)}` : ""} • Compra em ${formatPurchaseDate(item.purchaseDate)}</span>
           </div>
           <span class="purchase-item-detail"><strong>${escapeHtml(item.customerName)}</strong> • ${escapeHtml(item.phone)}</span>
           <div class="purchase-item-actions">
@@ -3538,7 +3630,40 @@
               <option value="not-picked-up"${wasPickedUp ? "" : " selected"}>Situação: Não retirado</option>
               <option value="picked-up"${wasPickedUp ? " selected" : ""}>Situação: Retirado</option>
             </select>
+            <button class="purchase-complete" type="button" data-purchase-action="complete-order" data-purchase-id="${item.id}" aria-label="Concluir encomenda de ${escapeHtml(item.customerName)}" title="Concluir encomenda">✓</button>
+            <button class="purchase-edit" type="button" data-purchase-action="edit-order" data-purchase-id="${item.id}" aria-label="Editar encomenda de ${escapeHtml(item.customerName)}" title="Editar encomenda">✎</button>
             <button class="purchase-remove" type="button" data-purchase-action="remove-order" data-purchase-id="${item.id}" aria-label="Remover encomenda de ${escapeHtml(item.customerName)}" title="Remover encomenda">×</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function renderCompletedPurchaseOrders() {
+    const orders = state.completedPurchaseOrders
+      .slice()
+      .sort((left, right) => String(right.completedAt || right.updatedAt || "").localeCompare(String(left.completedAt || left.updatedAt || "")));
+    elements.completedOrdersCount.textContent = `${orders.length} ${orders.length === 1 ? "encomenda" : "encomendas"}`;
+    if (!orders.length) {
+      elements.completedOrdersList.innerHTML = `<div class="purchase-empty">Nenhuma encomenda concluída.</div>`;
+      return;
+    }
+
+    elements.completedOrdersList.innerHTML = orders.map((item) => {
+      const condition = getPurchaseConditionDetails(item.condition);
+      const wasPickedUp = item.situation === "picked-up";
+      return `
+        <article class="purchase-item purchase-item-completed">
+          <div class="purchase-item-main">
+            <strong>${escapeHtml(item.product)}</strong>
+            <span>Quantidade: ${escapeHtml(item.quantity)}${item.ean ? ` • EAN: ${escapeHtml(item.ean)}` : ""} • Compra em ${formatPurchaseDate(item.purchaseDate)}</span>
+          </div>
+          <span class="purchase-item-detail"><strong>${escapeHtml(item.customerName)}</strong> • ${escapeHtml(item.phone)}</span>
+          <div class="purchase-item-actions">
+            <span class="purchase-status-badge ${condition.className}">${condition.label}</span>
+            <span class="purchase-status-badge ${wasPickedUp ? "situation-picked-up" : "situation-not-picked-up"}">${wasPickedUp ? "Retirado" : "Não retirado"}</span>
+            <span class="purchase-completed-at">Concluído em ${formatPurchaseDateTime(item.completedAt)}</span>
+            <button class="purchase-remove" type="button" data-purchase-action="remove-completed-order" data-purchase-id="${item.id}" aria-label="Remover encomenda concluída de ${escapeHtml(item.customerName)}" title="Remover">×</button>
           </div>
         </article>
       `;
@@ -3548,6 +3673,30 @@
   function renderPurchases() {
     renderPurchaseShortages();
     renderPurchaseOrders();
+    renderCompletedPurchaseOrders();
+  }
+
+  async function refreshPurchaseData() {
+    if (elements.refreshPurchases.disabled) return;
+    elements.refreshPurchases.disabled = true;
+    elements.refreshPurchases.setAttribute("aria-busy", "true");
+    try {
+      const [purchaseShortages, purchaseOrders] = await Promise.all([
+        loadCollection(FIRESTORE_COLLECTIONS.purchaseShortages),
+        loadCollection(FIRESTORE_COLLECTIONS.purchaseOrders),
+      ]);
+      state.purchaseShortages = purchaseShortages;
+      state.purchaseOrders = purchaseOrders.filter((order) => !order.completedAt);
+      state.completedPurchaseOrders = purchaseOrders.filter((order) => order.completedAt);
+      renderPurchases();
+      showToast("Compras e encomendas atualizadas.");
+    } catch (error) {
+      console.error("Erro ao atualizar compras e encomendas:", error);
+      showToast(getFirebaseMessage(error));
+    } finally {
+      elements.refreshPurchases.disabled = false;
+      elements.refreshPurchases.removeAttribute("aria-busy");
+    }
   }
 
   function openPurchasesModal() {
@@ -3560,14 +3709,68 @@
     setTimeout(() => elements.shortageProduct.focus(), 0);
   }
 
+  function resetPurchaseShortageForm() {
+    state.editingPurchaseShortageId = "";
+    elements.shortageForm.reset();
+    elements.shortageDate.value = getLocalIsoDate();
+    elements.shortageSubmit.textContent = "Adicionar falta";
+    elements.shortageCancelEdit.classList.add("hidden");
+  }
+
+  function resetPurchaseOrderForm() {
+    state.editingPurchaseOrderId = "";
+    elements.orderForm.reset();
+    elements.orderDate.value = getLocalIsoDate();
+    elements.orderSubmit.textContent = "Adicionar encomenda";
+    elements.orderCancelEdit.classList.add("hidden");
+  }
+
+  function editPurchaseShortage(recordId) {
+    const item = state.purchaseShortages.find((record) => record.id === recordId);
+    if (!item) return;
+    state.editingPurchaseShortageId = item.id;
+    elements.shortageProduct.value = item.product || "";
+    elements.shortageEan.value = item.ean || "";
+    elements.shortageQuantity.value = String(item.quantity ?? "");
+    elements.shortageDate.value = item.outOfStockDate || "";
+    elements.shortageSubmit.textContent = "Salvar alterações";
+    elements.shortageCancelEdit.classList.remove("hidden");
+    elements.shortageProduct.focus();
+    elements.shortageForm.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function editPurchaseOrder(recordId) {
+    const item = state.purchaseOrders.find((record) => record.id === recordId);
+    if (!item) return;
+    state.editingPurchaseOrderId = item.id;
+    elements.orderName.value = item.customerName || "";
+    elements.orderDate.value = item.purchaseDate || "";
+    elements.orderPhone.value = item.phone || "";
+    elements.orderProduct.value = item.product || "";
+    elements.orderEan.value = item.ean || "";
+    elements.orderQuantity.value = String(item.quantity ?? "");
+    elements.orderSubmit.textContent = "Salvar alterações";
+    elements.orderCancelEdit.classList.remove("hidden");
+    elements.orderName.focus();
+    elements.orderForm.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   async function createPurchaseShortage() {
+    const existing = state.purchaseShortages.find((item) => item.id === state.editingPurchaseShortageId);
+    if (state.editingPurchaseShortageId && !existing) {
+      showToast("Este produto não está mais disponível para edição.");
+      resetPurchaseShortageForm();
+      return false;
+    }
     const record = {
-      id: crypto.randomUUID(),
+      ...(existing || {}),
+      id: existing?.id || crypto.randomUUID(),
       product: elements.shortageProduct.value.trim(),
+      ean: elements.shortageEan.value.trim(),
       quantity: Number(elements.shortageQuantity.value),
       outOfStockDate: elements.shortageDate.value,
-      createdAt: new Date().toISOString(),
-      createdBy: getCurrentUser()?.id || "",
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      createdBy: existing?.createdBy || getCurrentUser()?.id || "",
     };
     if (!record.product || !Number.isInteger(record.quantity) || record.quantity < 1 || !record.outOfStockDate) {
       showToast("Preencha produto, quantidade e data do estoque.");
@@ -3576,12 +3779,13 @@
 
     try {
       await upsertDocument(FIRESTORE_COLLECTIONS.purchaseShortages, record);
-      state.purchaseShortages.unshift(record);
-      elements.shortageForm.reset();
-      elements.shortageDate.value = getLocalIsoDate();
+      state.purchaseShortages = existing
+        ? state.purchaseShortages.map((item) => item.id === record.id ? record : item)
+        : [record, ...state.purchaseShortages];
+      resetPurchaseShortageForm();
       renderPurchaseShortages();
       elements.shortageProduct.focus();
-      showToast("Produto adicionado à lista de faltas.");
+      showToast(existing ? "Produto atualizado com sucesso." : "Produto adicionado à lista de faltas.");
       return true;
     } catch (error) {
       console.error("Erro ao salvar produto em falta:", error);
@@ -3591,18 +3795,26 @@
   }
 
   async function createPurchaseOrder() {
+    const existing = state.purchaseOrders.find((item) => item.id === state.editingPurchaseOrderId);
+    if (state.editingPurchaseOrderId && !existing) {
+      showToast("Esta encomenda não está mais disponível para edição.");
+      resetPurchaseOrderForm();
+      return false;
+    }
     const record = {
-      id: crypto.randomUUID(),
+      ...(existing || {}),
+      id: existing?.id || crypto.randomUUID(),
       customerName: elements.orderName.value.trim(),
       purchaseDate: elements.orderDate.value,
       phone: elements.orderPhone.value.trim(),
       product: elements.orderProduct.value.trim(),
+      ean: elements.orderEan.value.trim(),
       quantity: Number(elements.orderQuantity.value),
-      condition: "pending",
-      situation: "not-picked-up",
-      createdAt: new Date().toISOString(),
+      condition: existing?.condition || "pending",
+      situation: existing?.situation || "not-picked-up",
+      createdAt: existing?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      createdBy: getCurrentUser()?.id || "",
+      createdBy: existing?.createdBy || getCurrentUser()?.id || "",
     };
     if (!record.customerName || !record.purchaseDate || !record.phone || !record.product || !Number.isInteger(record.quantity) || record.quantity < 1) {
       showToast("Preencha todos os campos da encomenda.");
@@ -3611,12 +3823,13 @@
 
     try {
       await upsertDocument(FIRESTORE_COLLECTIONS.purchaseOrders, record);
-      state.purchaseOrders.unshift(record);
-      elements.orderForm.reset();
-      elements.orderDate.value = getLocalIsoDate();
+      state.purchaseOrders = existing
+        ? state.purchaseOrders.map((item) => item.id === record.id ? record : item)
+        : [record, ...state.purchaseOrders];
+      resetPurchaseOrderForm();
       renderPurchaseOrders();
       elements.orderName.focus();
-      showToast("Encomenda adicionada com sucesso.");
+      showToast(existing ? "Encomenda atualizada com sucesso." : "Encomenda adicionada com sucesso.");
       return true;
     } catch (error) {
       console.error("Erro ao salvar encomenda:", error);
@@ -3659,9 +3872,11 @@
       await deleteDocument(collection, recordId);
       if (isOrder) {
         state.purchaseOrders = state.purchaseOrders.filter((item) => item.id !== recordId);
+        if (state.editingPurchaseOrderId === recordId) resetPurchaseOrderForm();
         renderPurchaseOrders();
       } else {
         state.purchaseShortages = state.purchaseShortages.filter((item) => item.id !== recordId);
+        if (state.editingPurchaseShortageId === recordId) resetPurchaseShortageForm();
         renderPurchaseShortages();
       }
       showToast("Item removido com sucesso.");
@@ -3671,6 +3886,516 @@
     }
   }
 
+  async function completePurchaseOrder(orderId) {
+    const order = state.purchaseOrders.find((item) => item.id === orderId);
+    if (!order) return;
+    if (!window.confirm(`Deseja concluir a encomenda de ${order.customerName}?`)) return;
+
+    const completedOrder = {
+      ...order,
+      completedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.purchaseOrders, completedOrder);
+      state.purchaseOrders = state.purchaseOrders.filter((item) => item.id !== orderId);
+      state.completedPurchaseOrders = [completedOrder, ...state.completedPurchaseOrders];
+      renderPurchaseOrders();
+      renderCompletedPurchaseOrders();
+      showToast("Encomenda concluída e movida para o histórico.");
+    } catch (error) {
+      console.error("Erro ao concluir encomenda:", error);
+      showToast(getFirebaseMessage(error));
+    }
+  }
+
+  async function removeCompletedPurchaseOrder(orderId) {
+    const order = state.completedPurchaseOrders.find((item) => item.id === orderId);
+    if (!order) return;
+    if (!window.confirm(`Deseja remover a encomenda concluída de ${order.customerName}?`)) return;
+
+    try {
+      await deleteDocument(FIRESTORE_COLLECTIONS.purchaseOrders, orderId);
+      state.completedPurchaseOrders = state.completedPurchaseOrders.filter((item) => item.id !== orderId);
+      renderCompletedPurchaseOrders();
+      showToast("Encomenda concluída removida com sucesso.");
+    } catch (error) {
+      console.error("Erro ao remover encomenda concluída:", error);
+      showToast(getFirebaseMessage(error));
+    }
+  }
+
+  function sanitizeCashbackClient(client) {
+    const credits = Array.isArray(client?.credits) ? client.credits : [];
+    return {
+      id: String(client?.id || crypto.randomUUID()),
+      name: String(client?.name || "").trim(),
+      cpf: String(client?.cpf || "").replace(/\D/g, "").slice(0, 11),
+      phone: String(client?.phone || "").replace(/\D/g, "").slice(0, 13),
+      createdAt: String(client?.createdAt || ""),
+      updatedAt: String(client?.updatedAt || ""),
+      createdBy: String(client?.createdBy || ""),
+      credits: credits.map((credit) => {
+        const purchaseValue = Number(credit?.purchaseValue) || 0;
+        const percent = Number(credit?.percent) || 0;
+        const calculatedAmount = Math.round(purchaseValue * percent) / 100;
+        return {
+          id: String(credit?.id || crypto.randomUUID()),
+          purchaseValue,
+          percent,
+          amount: Number.isFinite(Number(credit?.amount)) ? Number(credit.amount) : calculatedAmount,
+          saleDate: String(credit?.saleDate || ""),
+          expirationDate: String(credit?.expirationDate || ""),
+          createdAt: String(credit?.createdAt || ""),
+        };
+      }),
+    };
+  }
+
+  function formatCashbackCpf(value) {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+    return digits
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+  }
+
+  function formatCashbackPhone(value) {
+    return formatPurchasePhone(String(value || "").replace(/^55(?=\d{10,11}$)/, ""));
+  }
+
+  function getCashbackDaysUntil(expirationDate) {
+    const match = String(expirationDate || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const expirationUtc = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return Math.round((expirationUtc - todayUtc) / 86400000);
+  }
+
+  function getCashbackExpirationText(expirationDate) {
+    const days = getCashbackDaysUntil(expirationDate);
+    if (days === null) return "Validade não informada";
+    if (days < 0) return `Vencido há ${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"}`;
+    if (days === 0) return "Vence hoje";
+    return `Vence em ${days} ${days === 1 ? "dia" : "dias"}`;
+  }
+
+  function getCashbackExpirationClass(expirationDate) {
+    const days = getCashbackDaysUntil(expirationDate);
+    if (days === null || days < 0) return "is-expired";
+    if (days <= 10) return "is-urgent";
+    if (days <= 30) return "is-warning";
+    return "is-valid";
+  }
+
+  function getCashbackMessageExpirationText(expirationDate) {
+    const days = getCashbackDaysUntil(expirationDate);
+    if (days === null) return "está com a validade não informada";
+    if (days < 0) return `venceu há ${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"}`;
+    if (days === 0) return "vence hoje";
+    return `vai vencer em ${days} ${days === 1 ? "dia" : "dias"}`;
+  }
+
+  function getDefaultCashbackExpirationDate() {
+    return getCashbackExpirationDate(30);
+  }
+
+  function getCashbackExpirationDate(validityDays, saleDate = getLocalIsoDate()) {
+    const days = Number(validityDays);
+    const match = String(saleDate || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!Number.isInteger(days) || days < 1 || !match) return "";
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+    if (date.getFullYear() !== Number(match[1]) || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) return "";
+    date.setDate(date.getDate() + days);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function updateCashbackExpirationPreview() {
+    const expirationDate = getCashbackExpirationDate(elements.cashbackValidityDays.value, elements.cashbackSaleDate.value);
+    elements.cashbackExpirationPreview.textContent = expirationDate
+      ? `Vence em ${formatPurchaseDate(expirationDate)}`
+      : "Informe uma quantidade válida de dias.";
+  }
+
+  function calculateCashbackFormAmount() {
+    const purchaseValue = parseNumberValue(elements.cashbackPurchaseValue.value);
+    const percent = parseNumberValue(elements.cashbackPercent.value);
+    const amount = purchaseValue !== null && percent !== null && purchaseValue > 0 && percent > 0
+      ? Math.round(purchaseValue * percent) / 100
+      : 0;
+    elements.cashbackValuePreview.textContent = formatCurrency(amount);
+    return amount;
+  }
+
+  function resetCashbackForm() {
+    state.cashbackFormMode = "create";
+    state.cashbackFormClientId = "";
+    elements.cashbackForm.reset();
+    elements.cashbackSaleDate.value = getLocalIsoDate();
+    elements.cashbackSaleDate.max = getLocalIsoDate();
+    elements.cashbackValidityDays.value = "30";
+    elements.cashbackFormTitle.textContent = "Cadastrar cliente e CashBack";
+    elements.cashbackSubmit.textContent = "Adicionar CashBack";
+    elements.cashbackCancelPrefill.textContent = "Cancelar";
+    elements.cashbackCancelPrefill.classList.add("hidden");
+    elements.cashbackForm.querySelectorAll(".cashback-credit-field").forEach((field) => field.classList.remove("hidden"));
+    elements.cashbackCalculated.classList.remove("hidden");
+    elements.cashbackPurchaseValue.required = true;
+    elements.cashbackPercent.required = true;
+    elements.cashbackValidityDays.required = true;
+    calculateCashbackFormAmount();
+    updateCashbackExpirationPreview();
+  }
+
+  function getVisibleCashbackClients() {
+    const query = normalize(state.cashbackSearch).trim();
+    const filterDays = Number(state.cashbackExpirationFilter);
+    return state.cashbackClients
+      .filter((client) => {
+        const matchesSearch = !query || normalize(`${client.name} ${client.cpf} ${formatCashbackCpf(client.cpf)} ${client.phone}`).includes(query);
+        if (!matchesSearch) return false;
+        if (!Number.isFinite(filterDays)) return true;
+        return client.credits.some((credit) => {
+          const days = getCashbackDaysUntil(credit.expirationDate);
+          return days !== null && days >= 0 && days <= filterDays;
+        });
+      })
+      .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
+  }
+
+  function renderCashbackClients() {
+    const clients = getVisibleCashbackClients();
+    elements.cashbackCount.textContent = `${clients.length} ${clients.length === 1 ? "cliente" : "clientes"}`;
+    const filterDays = Number(state.cashbackExpirationFilter);
+    const hasFilter = Number.isFinite(filterDays);
+    elements.cashbackFilterLabel.textContent = hasFilter ? `Vencimento em ${filterDays} dias` : "Filtrar vencimento";
+    elements.cashbackActiveFilter.classList.toggle("hidden", !hasFilter);
+    elements.cashbackActiveFilter.innerHTML = hasFilter
+      ? `<span>Exibindo clientes com CashBack vencendo nos próximos ${filterDays} dias.</span><button type="button" data-cashback-filter="all">Remover filtro ×</button>`
+      : "";
+
+    if (!clients.length) {
+      elements.cashbackClientList.innerHTML = `<div class="cashback-empty">${state.cashbackSearch || hasFilter ? "Nenhum cliente encontrado com os critérios informados." : "Nenhum cliente com CashBack cadastrado. Adicione o primeiro acima."}</div>`;
+      return;
+    }
+
+    elements.cashbackClientList.innerHTML = clients.map((client) => {
+      const sortedCredits = client.credits.slice().sort((left, right) => String(left.expirationDate).localeCompare(String(right.expirationDate)));
+      const validTotal = sortedCredits.reduce((total, credit) => {
+        const days = getCashbackDaysUntil(credit.expirationDate);
+        return days !== null && days >= 0 ? total + credit.amount : total;
+      }, 0);
+      const creditRows = sortedCredits.map((credit) => `
+        <div class="cashback-credit-row">
+          <div class="cashback-credit-value">
+            <strong>${formatCurrency(credit.amount)}</strong>
+            <span>${credit.saleDate ? `Venda em ${formatPurchaseDate(credit.saleDate)}` : "Data da venda não informada"} • Compra de ${formatCurrency(credit.purchaseValue)} • ${formatPercent(credit.percent)}</span>
+          </div>
+          <div class="cashback-credit-expiration">
+            <strong>${formatPurchaseDate(credit.expirationDate)}</strong>
+            <span class="cashback-expiration-status ${getCashbackExpirationClass(credit.expirationDate)}">${getCashbackExpirationText(credit.expirationDate)}</span>
+          </div>
+          <button class="cashback-credit-remove" type="button" data-cashback-action="remove-credit" data-client-id="${client.id}" data-credit-id="${credit.id}" aria-label="Remover CashBack de ${formatCurrency(credit.amount)}" title="Remover CashBack">×</button>
+        </div>
+      `).join("");
+      return `
+        <article class="cashback-client-card" data-cashback-client-id="${client.id}">
+          <header class="cashback-client-head">
+            <div class="cashback-client-identity">
+              <span class="cashback-client-avatar" aria-hidden="true">${escapeHtml(getInitials(client.name))}</span>
+              <div>
+                <h3>${escapeHtml(client.name)}</h3>
+                <p>CPF ${escapeHtml(formatCashbackCpf(client.cpf))} • ${escapeHtml(formatCashbackPhone(client.phone))}</p>
+              </div>
+            </div>
+            <div class="cashback-client-total">
+              <span>Saldo válido</span>
+              <strong>${formatCurrency(validTotal)}</strong>
+            </div>
+          </header>
+          <div class="cashback-credit-list">${creditRows}</div>
+          <footer class="cashback-client-actions">
+            <button class="button button-secondary" type="button" data-cashback-action="edit-client" data-client-id="${client.id}">Editar cliente</button>
+            <button class="button button-secondary" type="button" data-cashback-action="add-credit" data-client-id="${client.id}">+ Novo CashBack</button>
+            <button class="button cashback-whatsapp-button" type="button" data-cashback-action="message" data-client-id="${client.id}">WhatsApp</button>
+            <button class="button button-secondary cashback-remove-client" type="button" data-cashback-action="remove-client" data-client-id="${client.id}">Remover cliente</button>
+          </footer>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function openCashbackModal() {
+    elements.cashbackSaleDate.max = getLocalIsoDate();
+    if (!elements.cashbackSaleDate.value) elements.cashbackSaleDate.value = getLocalIsoDate();
+    if (!elements.cashbackValidityDays.value) elements.cashbackValidityDays.value = "30";
+    renderCashbackClients();
+    calculateCashbackFormAmount();
+    updateCashbackExpirationPreview();
+    openModal(elements.cashbackModal);
+    setTimeout(() => elements.cashbackName.focus(), 0);
+  }
+
+  function prefillCashbackClient(clientId) {
+    const client = state.cashbackClients.find((item) => item.id === clientId);
+    if (!client) return;
+    resetCashbackForm();
+    state.cashbackFormMode = "add-credit";
+    state.cashbackFormClientId = client.id;
+    elements.cashbackName.value = client.name;
+    elements.cashbackCpf.value = formatCashbackCpf(client.cpf);
+    elements.cashbackPhone.value = formatCashbackPhone(client.phone);
+    elements.cashbackSaleDate.value = getLocalIsoDate();
+    elements.cashbackPurchaseValue.value = "";
+    elements.cashbackPercent.value = "";
+    elements.cashbackValidityDays.value = "30";
+    elements.cashbackFormTitle.textContent = `Novo CashBack para ${client.name}`;
+    elements.cashbackSubmit.textContent = "Adicionar ao cliente";
+    elements.cashbackCancelPrefill.textContent = "Cancelar";
+    elements.cashbackCancelPrefill.classList.remove("hidden");
+    calculateCashbackFormAmount();
+    updateCashbackExpirationPreview();
+    elements.cashbackPurchaseValue.focus();
+    elements.cashbackForm.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function editCashbackClient(clientId) {
+    const client = state.cashbackClients.find((item) => item.id === clientId);
+    if (!client) return;
+    resetCashbackForm();
+    state.cashbackFormMode = "edit-client";
+    state.cashbackFormClientId = client.id;
+    elements.cashbackName.value = client.name;
+    elements.cashbackCpf.value = formatCashbackCpf(client.cpf);
+    elements.cashbackPhone.value = formatCashbackPhone(client.phone);
+    elements.cashbackPurchaseValue.value = "";
+    elements.cashbackPercent.value = "";
+    elements.cashbackForm.querySelectorAll(".cashback-credit-field").forEach((field) => field.classList.add("hidden"));
+    elements.cashbackCalculated.classList.add("hidden");
+    elements.cashbackPurchaseValue.required = false;
+    elements.cashbackPercent.required = false;
+    elements.cashbackValidityDays.required = false;
+    elements.cashbackFormTitle.textContent = `Editar cliente: ${client.name}`;
+    elements.cashbackSubmit.textContent = "Salvar cliente";
+    elements.cashbackCancelPrefill.textContent = "Cancelar edição";
+    elements.cashbackCancelPrefill.classList.remove("hidden");
+    elements.cashbackName.focus();
+    elements.cashbackForm.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  async function createCashbackCredit() {
+    const name = elements.cashbackName.value.trim();
+    const cpf = elements.cashbackCpf.value.replace(/\D/g, "");
+    const phone = elements.cashbackPhone.value.replace(/\D/g, "");
+    if (!name || cpf.length !== 11 || phone.length < 10 || phone.length > 13) {
+      showToast("Preencha nome, CPF e telefone corretamente.");
+      return false;
+    }
+
+    const now = new Date().toISOString();
+    if (state.cashbackFormMode === "edit-client") {
+      const existingClient = state.cashbackClients.find((item) => item.id === state.cashbackFormClientId);
+      if (!existingClient) {
+        showToast("Este cliente não está mais disponível para edição.");
+        resetCashbackForm();
+        return false;
+      }
+      const duplicateCpf = state.cashbackClients.some((item) => item.id !== existingClient.id && item.cpf === cpf);
+      if (duplicateCpf) {
+        showToast("Já existe outro cliente cadastrado com este CPF.");
+        return false;
+      }
+      const updatedClient = sanitizeCashbackClient({
+        ...existingClient,
+        name,
+        cpf,
+        phone,
+        updatedAt: now,
+      });
+      try {
+        await upsertDocument(FIRESTORE_COLLECTIONS.cashbackClients, updatedClient);
+        state.cashbackClients = state.cashbackClients.map((item) => item.id === updatedClient.id ? updatedClient : item);
+        resetCashbackForm();
+        renderCashbackClients();
+        showToast("Dados do cliente atualizados com sucesso.");
+        return true;
+      } catch (error) {
+        console.error("Erro ao atualizar cliente do CashBack:", error);
+        showToast(getFirebaseMessage(error));
+        return false;
+      }
+    }
+
+    const purchaseValue = parseNumberValue(elements.cashbackPurchaseValue.value);
+    const percent = parseNumberValue(elements.cashbackPercent.value);
+    const saleDate = elements.cashbackSaleDate.value;
+    const validityDays = Number(elements.cashbackValidityDays.value);
+    const expirationDate = getCashbackExpirationDate(validityDays, saleDate);
+    if (!saleDate || saleDate > getLocalIsoDate() || purchaseValue === null || purchaseValue <= 0 || percent === null || percent <= 0 || percent > 100 || !expirationDate) {
+      showToast("Preencha uma data da venda válida (hoje ou anterior), compra, percentual e validade corretamente.");
+      return false;
+    }
+
+    const credit = {
+      id: crypto.randomUUID(),
+      purchaseValue,
+      percent,
+      amount: Math.round(purchaseValue * percent) / 100,
+      saleDate,
+      expirationDate,
+      createdAt: now,
+    };
+    const existing = state.cashbackClients.find((client) =>
+      state.cashbackFormMode === "add-credit"
+        ? client.id === state.cashbackFormClientId
+        : client.cpf === cpf
+    );
+    if (state.cashbackFormMode === "add-credit" && !existing) {
+      showToast("Este cliente não está mais disponível para receber CashBack.");
+      resetCashbackForm();
+      return false;
+    }
+    const client = sanitizeCashbackClient({
+      ...(existing || {}),
+      id: existing?.id || crypto.randomUUID(),
+      name,
+      cpf,
+      phone,
+      credits: [...(existing?.credits || []), credit],
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      createdBy: existing?.createdBy || getCurrentUser()?.id || "",
+    });
+
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.cashbackClients, client);
+      state.cashbackClients = existing
+        ? state.cashbackClients.map((item) => item.id === client.id ? client : item)
+        : [client, ...state.cashbackClients];
+      resetCashbackForm();
+      renderCashbackClients();
+      elements.cashbackName.focus();
+      showToast(existing ? "Novo CashBack adicionado ao cliente." : "Cliente e CashBack cadastrados com sucesso.");
+      return true;
+    } catch (error) {
+      console.error("Erro ao salvar CashBack:", error);
+      showToast(getFirebaseMessage(error));
+      return false;
+    }
+  }
+
+  async function removeCashbackCredit(clientId, creditId) {
+    const client = state.cashbackClients.find((item) => item.id === clientId);
+    const credit = client?.credits.find((item) => item.id === creditId);
+    if (!client || !credit || !window.confirm(`Deseja remover o CashBack de ${formatCurrency(credit.amount)} de ${client.name}?`)) return;
+    try {
+      if (client.credits.length === 1) {
+        await deleteDocument(FIRESTORE_COLLECTIONS.cashbackClients, client.id);
+        state.cashbackClients = state.cashbackClients.filter((item) => item.id !== client.id);
+      } else {
+        const updatedClient = { ...client, credits: client.credits.filter((item) => item.id !== creditId), updatedAt: new Date().toISOString() };
+        await upsertDocument(FIRESTORE_COLLECTIONS.cashbackClients, updatedClient);
+        state.cashbackClients = state.cashbackClients.map((item) => item.id === client.id ? updatedClient : item);
+      }
+      renderCashbackClients();
+      showToast("CashBack removido.");
+    } catch (error) {
+      console.error("Erro ao remover CashBack:", error);
+      showToast(getFirebaseMessage(error));
+    }
+  }
+
+  async function removeCashbackClient(clientId) {
+    const client = state.cashbackClients.find((item) => item.id === clientId);
+    if (!client || !window.confirm(`Deseja remover ${client.name} e todo o histórico de CashBack?`)) return;
+    try {
+      await deleteDocument(FIRESTORE_COLLECTIONS.cashbackClients, client.id);
+      state.cashbackClients = state.cashbackClients.filter((item) => item.id !== client.id);
+      renderCashbackClients();
+      showToast("Cliente removido do CashBack.");
+    } catch (error) {
+      console.error("Erro ao remover cliente do CashBack:", error);
+      showToast(getFirebaseMessage(error));
+    }
+  }
+
+  function getSelectedCashbackCredits() {
+    const client = state.cashbackClients.find((item) => item.id === state.cashbackMessageClientId);
+    if (!client) return { client: null, credits: [] };
+    const selectedIds = new Set(Array.from(elements.cashbackMessageOptions.querySelectorAll("input[type='checkbox']:checked")).map((input) => input.value));
+    return { client, credits: client.credits.filter((credit) => selectedIds.has(credit.id)) };
+  }
+
+  function buildCashbackMessage(client, credits) {
+    if (!client || !credits.length) return "";
+    const sortedCredits = credits.slice().sort((left, right) => String(left.expirationDate).localeCompare(String(right.expirationDate)));
+    const total = sortedCredits.reduce((sum, credit) => sum + credit.amount, 0);
+    const details = sortedCredits.map((credit) => `• ${formatCurrency(credit.amount)} — validade ${formatPurchaseDate(credit.expirationDate)} (${getCashbackExpirationText(credit.expirationDate).toLowerCase()})`);
+    const expirationLead = sortedCredits.length === 1
+      ? `, que ${getCashbackMessageExpirationText(sortedCredits[0].expirationDate)}.`
+      : ". Confira as validades:";
+    return [
+      `Olá, ${client.name}, aqui é a Farmácia Superpreço. ❤️💊`,
+      "",
+      `Você tem um CashBack de ${formatCurrency(total)}${expirationLead}`,
+      ...(sortedCredits.length > 1 ? ["", ...details] : []),
+      "",
+      "Gostaria de realizar um pedido e aproveitar o desconto do CashBack? ☺️",
+    ].join("\n");
+  }
+
+  function updateCashbackMessagePreview() {
+    const { client, credits } = getSelectedCashbackCredits();
+    const message = buildCashbackMessage(client, credits);
+    elements.cashbackMessagePreview.innerHTML = message
+      ? `<pre>${escapeHtml(message)}</pre>`
+      : `<p>Selecione pelo menos um CashBack para preparar a mensagem.</p>`;
+    elements.copyCashbackMessage.disabled = !message;
+    elements.sendCashbackMessage.disabled = !message;
+  }
+
+  function openCashbackMessageModal(clientId) {
+    const client = state.cashbackClients.find((item) => item.id === clientId);
+    if (!client) return;
+    state.cashbackMessageClientId = client.id;
+    const credits = client.credits.slice().sort((left, right) => String(left.expirationDate).localeCompare(String(right.expirationDate)));
+    elements.cashbackMessageClient.textContent = `${client.name} • selecione os créditos que deseja enviar.`;
+    elements.cashbackMessageOptions.innerHTML = credits.map((credit) => {
+      const daysUntilExpiration = getCashbackDaysUntil(credit.expirationDate);
+      const isValid = daysUntilExpiration !== null && daysUntilExpiration >= 0;
+      return `
+        <label class="cashback-message-option">
+          <input type="checkbox" value="${credit.id}"${isValid ? " checked" : ""} />
+          <span>
+            <strong>${formatCurrency(credit.amount)}</strong>
+            <small>Compra ${formatCurrency(credit.purchaseValue)} • ${formatPercent(credit.percent)} • validade ${formatPurchaseDate(credit.expirationDate)}</small>
+          </span>
+          <em class="cashback-expiration-status ${getCashbackExpirationClass(credit.expirationDate)}">${getCashbackExpirationText(credit.expirationDate)}</em>
+        </label>
+      `;
+    }).join("");
+    updateCashbackMessagePreview();
+    openModal(elements.cashbackMessageModal);
+  }
+
+  function closeCashbackMessageModal() {
+    state.cashbackMessageClientId = "";
+    closeModal(elements.cashbackMessageModal);
+  }
+
+  function setCashbackFilter(value) {
+    state.cashbackExpirationFilter = ["10", "30"].includes(String(value)) ? String(value) : "all";
+    elements.cashbackFilterMenu.classList.add("hidden");
+    elements.cashbackFilterToggle.setAttribute("aria-expanded", "false");
+    renderCashbackClients();
+  }
+
   function setTrierStatus(status, message) {
     elements.trierStatus.dataset.status = status;
     elements.trierStatus.textContent = message;
@@ -3678,6 +4403,128 @@
 
   function getTrierProductCost(product) {
     return product?.averageCost ?? product?.costPrice ?? null;
+  }
+
+  async function getBrowserTrierService(path) {
+    let response;
+    try {
+      response = await fetch(`http://127.0.0.1:43187/trier/${path}`, { cache: "no-store" });
+    } catch {
+      throw new Error("O serviço local da Trier não está ativo. Abra o aplicativo Atendimento Inj para iniciá-lo.");
+    }
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("O serviço local da Trier devolveu uma resposta inválida.");
+    }
+    if (!response.ok) {
+      throw new Error(result?.error || "Não foi possível carregar os dados locais da Trier.");
+    }
+    return result;
+  }
+
+  function findExactQuoteProduct(value) {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (!digits) return null;
+    return state.trierProducts.find((product) => product.barcode === digits || product.code === digits) || null;
+  }
+
+  function findExactQuoteName(value) {
+    const query = normalize(String(value || "").trim());
+    if (!query) return null;
+    const matches = state.trierProducts.filter((product) => normalize(product.name) === query);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  function getQuoteProductMatches(value) {
+    const query = normalize(String(value || "").trim());
+    if (query.length < 2) return [];
+    const digits = String(value || "").replace(/\D/g, "");
+    return state.trierProducts
+      .map((product, index) => ({ product, index }))
+      .filter(({ product }) => (
+        normalize(product.name).includes(query)
+        || normalize(product.activeIngredient).includes(query)
+        || (digits && (product.barcode.includes(digits) || product.code === digits))
+      ))
+      .sort((left, right) => left.product.name.localeCompare(right.product.name, "pt-BR"));
+  }
+
+  function openQuoteProductChooser(query) {
+    elements.quoteProductChooserSearch.value = String(query || "").trim();
+    state.selectedQuoteChooserIndex = -1;
+    renderQuoteProductChooserResults();
+    elements.quoteProductChooserDetail.classList.add("hidden");
+    elements.quoteProductChooserDetail.innerHTML = "";
+    openModal(elements.quoteProductChooserModal);
+    elements.quoteProductChooserSearch.focus();
+    elements.quoteProductChooserSearch.setSelectionRange(
+      elements.quoteProductChooserSearch.value.length,
+      elements.quoteProductChooserSearch.value.length,
+    );
+  }
+
+  function renderQuoteProductChooserResults() {
+    const query = elements.quoteProductChooserSearch.value;
+    state.quoteProductChooserMatches = getQuoteProductMatches(query);
+    state.selectedQuoteChooserIndex = state.quoteProductChooserMatches.some(({ index }) => index === state.selectedQuoteChooserIndex)
+      ? state.selectedQuoteChooserIndex
+      : -1;
+    if (!state.trierProducts.length) {
+      elements.quoteProductChooserResults.innerHTML = `<div class="quote-product-chooser-empty">${escapeHtml(state.trierSyncError || "Conectando ao estoque da Trier. Tente novamente em instantes.")}</div>`;
+      return;
+    }
+    if (!state.quoteProductChooserMatches.length) {
+      elements.quoteProductChooserResults.innerHTML = `<div class="quote-product-chooser-empty">${query.trim().length < 2 ? "Digite pelo menos 2 caracteres para pesquisar." : "Nenhum produto encontrado pelo nome ou princípio ativo."}</div>`;
+      return;
+    }
+    elements.quoteProductChooserResults.innerHTML = `
+      <table class="quote-product-chooser-table">
+        <thead><tr><th scope="col">Produto</th><th scope="col">Apresentação</th><th scope="col">Laboratório</th><th scope="col">Estoque</th><th scope="col">Rentabilidade (R$)</th><th scope="col">Preço Venda (R$)</th></tr></thead>
+        <tbody role="listbox" aria-label="Opções de produtos">
+          ${state.quoteProductChooserMatches.map(({ product, index }) => {
+            const cost = getTrierProductCost(product);
+            const profitability = cost === null ? null : product.salePrice - cost;
+            const activeIngredient = product.activeIngredient ? `Princípio ativo: ${product.activeIngredient}. ` : "";
+            return `
+              <tr class="quote-product-chooser-option${index === state.selectedQuoteChooserIndex ? " is-selected" : ""}" role="option" aria-selected="${index === state.selectedQuoteChooserIndex}" aria-label="${escapeHtml(`${product.name}, ${product.unit}, ${product.laboratory || "laboratório não informado"}, estoque ${product.stock}, preço de venda ${formatCurrency(product.salePrice)}`)}" tabindex="0" data-trier-product-index="${index}">
+                <td title="${escapeHtml(`${activeIngredient}${product.name}`)}">${escapeHtml(product.name)}</td>
+                <td>${escapeHtml(product.unit || "UN")}</td>
+                <td>${escapeHtml(product.laboratory || "—")}</td>
+                <td class="quote-product-chooser-number">${escapeHtml(String(product.stock))}</td>
+                <td class="quote-product-chooser-number">${profitability === null ? "—" : formatCurrency(profitability)}</td>
+                <td class="quote-product-chooser-number">${formatCurrency(product.salePrice)}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function showQuoteProductChooserDetails(index) {
+    const match = state.quoteProductChooserMatches.find((entry) => entry.index === index);
+    if (!match) return;
+    state.selectedQuoteChooserIndex = index;
+    const { product } = match;
+    const cost = getTrierProductCost(product);
+    renderQuoteProductChooserResults();
+    elements.quoteProductChooserResults
+      .querySelector(`[data-trier-product-index="${index}"]`)
+      ?.focus();
+    elements.quoteProductChooserDetail.classList.remove("hidden");
+    elements.quoteProductChooserDetail.innerHTML = `
+      <div class="quote-product-chooser-product-heading"><strong>Produto selecionado</strong><span>${escapeHtml(product.name)}</span></div>
+      <div class="quote-product-chooser-metrics">
+        <article><span>Preço de custo</span><strong>${cost === null ? "Não informado" : formatCurrency(cost)}</strong></article>
+        <article><span>Preço de venda</span><strong>${formatCurrency(product.salePrice)}</strong></article>
+        <article><span>Estoque</span><strong>${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)}</strong></article>
+        <article><span>Código</span><strong>${escapeHtml(product.code || "Não informado")}</strong></article>
+        <article><span>EAN</span><strong>${escapeHtml(product.barcode || "Não informado")}</strong></article>
+      </div>
+      <button class="button button-primary quote-product-chooser-use" type="button" data-quote-chooser-use="${index}">Usar este produto</button>
+    `;
   }
 
   function renderQuoteSearchResults() {
@@ -3699,6 +4546,7 @@
       .map((product, index) => ({ product, index, normalizedName: normalize(product.name) }))
       .filter(({ product, normalizedName }) => (
         normalizedName.includes(query)
+        || normalize(product.activeIngredient).includes(query)
         || (digits && (product.barcode.includes(digits) || product.code === digits))
       ))
       .sort((left, right) => {
@@ -3716,17 +4564,18 @@
 
     elements.quoteSearchResults.innerHTML = matches.map(({ product, index }) => `
       <button class="quote-search-option" type="button" role="option" data-trier-product-index="${index}">
-        <span><strong>${escapeHtml(product.name)}</strong><small>${product.barcode ? `EAN ${escapeHtml(product.barcode)} • ` : ""}Cód. ${escapeHtml(product.code)}</small></span>
-        <span class="quote-search-option-meta"><strong>${formatCurrency(product.salePrice)}</strong><small>${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)} em estoque</small></span>
+        <span><strong>${escapeHtml(product.name)}</strong><small>${product.laboratory ? `Lab.: ${escapeHtml(product.laboratory)} • ` : ""}${product.barcode ? `EAN ${escapeHtml(product.barcode)} • ` : ""}Cód. ${escapeHtml(product.code)}</small></span>
+        <span class="quote-search-option-meta"><strong>${formatCurrency(product.salePrice)}</strong><small>${product.hasDiscount ? "Preço com desconto" : "Preço Trier"} • ${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)} em estoque</small></span>
       </button>
     `).join("");
   }
 
-  function selectQuoteProduct(product) {
-    if (!product) return;
+  function selectQuoteProduct(product, { focusQuantity = true } = {}) {
+    if (!product || state.submittingQuoteToPdv) return;
+    if (!elements.quoteProductChooserModal.classList.contains("hidden")) closeModal(elements.quoteProductChooserModal);
     state.selectedQuoteProduct = product;
     elements.quoteProductSearch.value = product.name;
-    elements.quoteProductPrice.value = formatDecimalInput(product.salePrice);
+    elements.quoteProductPrice.value = formatDecimalInput(product.salePrice) || "0,00";
     elements.quoteProductQuantity.value = "1";
     elements.quoteSearchResults.classList.add("hidden");
     elements.quoteAddProduct.disabled = false;
@@ -3735,22 +4584,35 @@
       <div>
         <span class="quote-selected-label">Produto selecionado</span>
         <strong>${escapeHtml(product.name)}</strong>
-        <small>${product.barcode ? `EAN ${escapeHtml(product.barcode)} • ` : ""}Código ${escapeHtml(product.code)}</small>
+        <small>${product.laboratory ? `Lab.: ${escapeHtml(product.laboratory)} • ` : ""}${product.barcode ? `EAN ${escapeHtml(product.barcode)} • ` : ""}Código ${escapeHtml(product.code)}</small>
       </div>
       <div class="quote-selected-metrics">
         <span><small>Estoque</small><strong>${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)}</strong></span>
-        <span><small>Venda Trier</small><strong>${formatCurrency(product.salePrice)}</strong></span>
+        <span><small>${product.hasDiscount ? "Venda com desconto" : "Venda Trier"}</small><strong>${formatCurrency(product.salePrice)}</strong></span>
         <span><small>Custo${product.averageCost !== null ? " médio" : ""}</small><strong>${cost === null ? "Não informado" : formatCurrency(cost)}</strong></span>
       </div>
     `;
     elements.quoteSelectedProduct.classList.remove("hidden");
-    elements.quoteProductQuantity.focus();
-    elements.quoteProductQuantity.select();
+    if (focusQuantity) {
+      elements.quoteProductQuantity.focus();
+      elements.quoteProductQuantity.select();
+    } else {
+      elements.quoteProductSearch.select();
+    }
+  }
+
+  function resetQuotePdvSubmission() {
+    state.quotePdvSale = null;
+    state.quotePdvOrderId = "";
+    state.submittingQuoteToPdv = false;
   }
 
   function resetQuoteProductSelection() {
     state.selectedQuoteProduct = null;
+    state.quoteProductChooserMatches = [];
+    state.selectedQuoteChooserIndex = -1;
     elements.quoteProductSearch.value = "";
+    elements.quoteProductSearch.disabled = state.submittingQuoteToPdv;
     elements.quoteProductQuantity.value = "1";
     elements.quoteProductPrice.value = "";
     elements.quoteAddProduct.disabled = true;
@@ -3766,7 +4628,21 @@
     elements.quoteItems.classList.toggle("hidden", !hasItems);
     elements.sendWhatsappQuote.disabled = !hasItems;
     elements.copyWhatsappQuote.disabled = !hasItems;
-    elements.clearWhatsappQuote.disabled = !hasItems;
+    elements.sendPdvQuote.disabled = !hasItems || state.submittingQuoteToPdv || Boolean(state.quotePdvSale);
+    elements.sendPdvQuote.textContent = state.submittingQuoteToPdv
+      ? "Enviando ao PDV..."
+      : state.quotePdvSale
+        ? `Enviado • Venda ${state.quotePdvSale.numeroNota}`
+        : "Enviar orçamento ao PDV";
+    elements.clearWhatsappQuote.disabled = !hasItems || state.submittingQuoteToPdv;
+    elements.quoteProductSearch.disabled = state.submittingQuoteToPdv;
+    elements.quoteAddProduct.disabled = state.submittingQuoteToPdv || !state.selectedQuoteProduct;
+    elements.quoteCustomerName.disabled = state.submittingQuoteToPdv || Boolean(state.quotePdvSale);
+    elements.quoteCustomerCpf.disabled = state.submittingQuoteToPdv || Boolean(state.quotePdvSale);
+    elements.quotePdvStatus.classList.toggle("hidden", !state.quotePdvSale);
+    elements.quotePdvStatus.textContent = state.quotePdvSale
+      ? `Pedido ${state.quotePdvSale.numeroPedido} criado no PDV (venda ${state.quotePdvSale.numeroNota}). Confirme e conclua pelo caixa.${state.quotePdvSale.statusPedido ? ` Status: ${state.quotePdvSale.statusPedido}.` : ""}`
+      : "";
     const itemCount = state.whatsappQuoteItems.reduce((total, item) => total + item.quantity, 0);
     const total = state.whatsappQuoteItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
     elements.quoteItemsCount.textContent = String(itemCount);
@@ -3782,16 +4658,17 @@
             <span>${item.product.barcode ? `EAN ${escapeHtml(item.product.barcode)} • ` : ""}Estoque ${escapeHtml(String(item.product.stock))} ${escapeHtml(item.product.unit)}${cost === null ? "" : ` • Custo ${formatCurrency(cost)}`}</span>
             ${exceedsStock ? `<small class="quote-stock-warning">Quantidade acima do estoque disponível</small>` : ""}
           </div>
-          <label class="quote-item-field"><span>Qtd.</span><input type="number" min="1" step="1" value="${item.quantity}" data-quote-item-action="quantity" /></label>
-          <label class="quote-item-field quote-item-price"><span>Valor unitário</span><div class="quote-money-input"><span>R$</span><input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-quote-item-action="price" /></div></label>
+          <label class="quote-item-field"><span>Qtd.</span><input type="number" min="1" step="1" value="${item.quantity}" data-quote-item-action="quantity"${state.submittingQuoteToPdv ? " disabled" : ""} /></label>
+          <label class="quote-item-field quote-item-price"><span>Valor unitário</span><div class="quote-money-input"><span>R$</span><input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-quote-item-action="price"${state.submittingQuoteToPdv ? " disabled" : ""} /></div></label>
           <div class="quote-item-subtotal"><span>Subtotal</span><strong>${formatCurrency(item.quantity * item.price)}</strong></div>
-          <button class="quote-item-remove" type="button" data-quote-item-action="remove" aria-label="Remover ${escapeHtml(item.product.name)}">×</button>
+          <button class="quote-item-remove" type="button" data-quote-item-action="remove" aria-label="Remover ${escapeHtml(item.product.name)}"${state.submittingQuoteToPdv ? " disabled" : ""}>×</button>
         </article>
       `;
     }).join("");
   }
 
   function addSelectedProductToQuote() {
+    if (state.submittingQuoteToPdv) return false;
     const product = state.selectedQuoteProduct;
     const quantity = Number(elements.quoteProductQuantity.value);
     const price = parseNumberValue(elements.quoteProductPrice.value);
@@ -3808,6 +4685,7 @@
       return false;
     }
 
+    resetQuotePdvSubmission();
     const existing = state.whatsappQuoteItems.find((item) => item.product.code === product.code && item.price === price);
     if (existing) {
       existing.quantity += quantity;
@@ -3825,7 +4703,7 @@
     const customerName = elements.quoteCustomerName.value.trim();
     const total = state.whatsappQuoteItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
     const lines = [
-      "*ORÇAMENTO - FARMÁCIA SUPERPREÇO*",
+      "🧾 *ORÇAMENTO - FARMÁCIA SUPERPREÇO*",
       customerName ? `Olá, ${customerName}! Segue o seu orçamento:` : "Olá! Segue o seu orçamento:",
       "",
       ...state.whatsappQuoteItems.flatMap((item, index) => [
@@ -3833,11 +4711,52 @@
         `${item.quantity} x ${formatCurrency(item.price)} = *${formatCurrency(item.quantity * item.price)}*`,
         "",
       ]),
-      `*TOTAL: ${formatCurrency(total)}*`,
+      `💰 *TOTAL: ${formatCurrency(total)}*`,
       "",
-      "Valores sujeitos à disponibilidade de estoque.",
+      "📦 Valores sujeitos à disponibilidade de estoque.",
     ];
     return lines.join("\n");
+  }
+
+  async function sendQuoteToPdv() {
+    if (!state.whatsappQuoteItems.length || state.submittingQuoteToPdv || state.quotePdvSale) return;
+    if (!window.desktopTrier?.sendSale) {
+      showToast("O envio ao PDV está disponível no aplicativo desktop com a integração Trier configurada.");
+      return;
+    }
+
+    const total = state.whatsappQuoteItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+    const customerName = elements.quoteCustomerName.value.trim();
+    const customerCpf = elements.quoteCustomerCpf.value.replace(/\D/g, "");
+    if (Boolean(customerName) !== Boolean(customerCpf) || (customerName && customerCpf.length !== 11)) {
+      showToast("Para vincular o cliente ao pedido no PDV, informe nome e os 11 dígitos do CPF.");
+      return;
+    }
+    if (!window.confirm(`Enviar este orçamento de ${formatCurrency(total)} para o PDV da Trier? O pedido ficará disponível para a equipe confirmar no caixa; nenhum pagamento será concluído agora.`)) return;
+
+    state.quotePdvOrderId ||= `ORC-${crypto.randomUUID()}`;
+    state.submittingQuoteToPdv = true;
+    renderWhatsappQuote();
+    try {
+      const result = await window.desktopTrier.sendSale({
+        numeroPedido: state.quotePdvOrderId,
+        customerName,
+        customerCpf,
+        items: state.whatsappQuoteItems.map((item) => ({
+          product: { code: item.product.code, name: item.product.name },
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      });
+      state.quotePdvSale = result;
+      showToast(`Orçamento enviado ao PDV. Número da venda: ${result.numeroNota}.`);
+    } catch (error) {
+      console.error("Erro ao enviar orçamento ao PDV da Trier:", error);
+      showToast(error?.message || "Não foi possível enviar o orçamento ao PDV.");
+    } finally {
+      state.submittingQuoteToPdv = false;
+      renderWhatsappQuote();
+    }
   }
 
   function applyTrierProducts(result) {
@@ -3867,13 +4786,19 @@
     } else {
       setTrierStatus("success", `${products.length} produtos • atualizado às ${time} • automático a cada 5 min`);
     }
+    if (!elements.quoteProductChooserModal.classList.contains("hidden")) {
+      renderQuoteProductChooserResults();
+      if (state.selectedQuoteChooserIndex >= 0) showQuoteProductChooserDetails(state.selectedQuoteChooserIndex);
+    }
     if (!elements.whatsappQuoteModal.classList.contains("hidden")) renderWhatsappQuote();
   }
 
   async function loadTrierProducts(forceRefresh = false, silent = false) {
     setTrierStatus("loading", state.trierProducts.length ? "Atualizando estoque automaticamente..." : "Conectando à Trier...");
     try {
-      const result = await window.desktopTrier.getProducts(forceRefresh);
+      const result = window.desktopTrier
+        ? await window.desktopTrier.getProducts(forceRefresh)
+        : await getBrowserTrierService("products");
       applyTrierProducts(result);
       if (!state.trierProducts.length && !silent) showToast("A Trier não retornou produtos ativos.");
       return true;
@@ -3892,14 +4817,19 @@
     openModal(elements.whatsappQuoteModal);
     renderWhatsappQuote();
     try {
-      const config = await window.desktopTrier.getConfig();
+      const config = window.desktopTrier
+        ? await window.desktopTrier.getConfig()
+        : await getBrowserTrierService("status");
       elements.trierApiBaseUrl.value = config.baseUrl;
       elements.trierApiToken.placeholder = config.configured
         ? "Token salvo neste computador; preencha apenas para substituí-lo"
         : "Cole o token de integração emitido pela Trier";
-      if (!config.configured) {
+      if (!config.configured && window.desktopTrier) {
         elements.trierConfigForm.classList.remove("hidden");
         elements.trierConfigMessage.textContent = "Informe o token da Trier para carregar os produtos.";
+      } else if (!config.configured) {
+        state.trierSyncError = "Configure a integração Trier no aplicativo instalado antes de usar o navegador.";
+        setTrierStatus("error", state.trierSyncError);
       }
     } catch (error) {
       console.error("Não foi possível carregar a configuração da Trier:", error);
@@ -7141,6 +8071,9 @@
     if (elements.purchasesModal && !elements.purchasesModal.classList.contains("hidden")) {
       renderPurchases();
     }
+    if (elements.cashbackModal && !elements.cashbackModal.classList.contains("hidden")) {
+      renderCashbackClients();
+    }
   }
 
   document.getElementById("open-patient").addEventListener("click", () => {
@@ -7379,6 +8312,30 @@
     await logout();
   });
 
+  // Auto-updater handlers
+  elements.checkUpdatesButton.addEventListener("click", () => openUpdateModal());
+  elements.closeUpdateModal.addEventListener("click", () => closeModal(elements.updateModal));
+  elements.updateModal.addEventListener("click", (event) => {
+    if (event.target === elements.updateModal) closeModal(elements.updateModal);
+  });
+  elements.updateCancel.addEventListener("click", () => closeModal(elements.updateModal));
+  elements.updateDownload.addEventListener("click", async () => {
+    elements.updateDownload.classList.add("hidden");
+    elements.updateProgress.classList.remove("hidden");
+    elements.updateError.classList.add("hidden");
+    try {
+      await window.electronAPI.updateDownload();
+    } catch (error) {
+      elements.updateProgress.classList.add("hidden");
+      elements.updateDownload.classList.remove("hidden");
+      elements.updateError.textContent = error?.message || "Erro ao baixar atualização";
+      elements.updateError.classList.remove("hidden");
+    }
+  });
+  elements.updateInstall.addEventListener("click", () => {
+    window.electronAPI.updateInstall();
+  });
+
   elements.sidebarHandle.addEventListener("click", () => {
     setSidebarOpen(!state.sidebarOpen);
   });
@@ -7488,6 +8445,10 @@
     openPurchasesModal();
   });
 
+  elements.openCashback.addEventListener("click", () => {
+    openCashbackModal();
+  });
+
   elements.openWhatsappQuote.addEventListener("click", async () => {
     await openWhatsappQuoteModal();
   });
@@ -7496,7 +8457,14 @@
     closeModal(elements.whatsappQuoteModal);
   });
 
+  if (!window.desktopTrier) {
+    elements.trierConfigToggle.disabled = true;
+    elements.trierConfigForm.classList.add("hidden");
+    elements.trierConfigMessage.textContent = "Configure a Trier uma vez pelo aplicativo instalado.";
+  }
+
   elements.trierConfigToggle.addEventListener("click", async () => {
+    if (!window.desktopTrier) return;
     const opening = elements.trierConfigForm.classList.contains("hidden");
     elements.trierConfigForm.classList.toggle("hidden", !opening);
     elements.trierConfigMessage.textContent = "";
@@ -7524,6 +8492,10 @@
 
   elements.trierConfigForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (!window.desktopTrier) {
+      elements.trierConfigMessage.textContent = "Configure a Trier pelo aplicativo instalado para manter o token protegido.";
+      return;
+    }
     elements.trierConfigSave.disabled = true;
     elements.trierConfigMessage.textContent = "Salvando a configuração protegida...";
     try {
@@ -7553,6 +8525,45 @@
     if (event.target === elements.whatsappQuoteModal) closeModal(elements.whatsappQuoteModal);
   });
 
+  elements.closeQuoteProductChooser.addEventListener("click", () => {
+    closeModal(elements.quoteProductChooserModal);
+  });
+  elements.quoteProductChooserModal.addEventListener("click", (event) => {
+    if (event.target === elements.quoteProductChooserModal) closeModal(elements.quoteProductChooserModal);
+  });
+  elements.quoteProductChooserResults.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-trier-product-index]");
+    if (!option) return;
+    showQuoteProductChooserDetails(Number(option.dataset.trierProductIndex));
+  });
+  elements.quoteProductChooserDetail.addEventListener("click", (event) => {
+    const useButton = event.target.closest("[data-quote-chooser-use]");
+    if (!useButton) return;
+    const product = state.trierProducts[Number(useButton.dataset.quoteChooserUse)];
+    if (!product) return;
+    closeModal(elements.quoteProductChooserModal);
+    selectQuoteProduct(product);
+    elements.quoteProductSearch.focus();
+  });
+  elements.quoteProductChooserResults.addEventListener("keydown", (event) => {
+    const rows = [...elements.quoteProductChooserResults.querySelectorAll("[data-trier-product-index]")];
+    const currentIndex = rows.indexOf(event.target.closest("[data-trier-product-index]"));
+    if (currentIndex < 0) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      rows[Math.max(0, Math.min(rows.length - 1, currentIndex + (event.key === "ArrowDown" ? 1 : -1)))].focus();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      showQuoteProductChooserDetails(Number(rows[currentIndex].dataset.trierProductIndex));
+    }
+  });
+  elements.quoteProductChooserSearch.addEventListener("input", () => {
+    state.selectedQuoteChooserIndex = -1;
+    renderQuoteProductChooserResults();
+    elements.quoteProductChooserDetail.classList.add("hidden");
+    elements.quoteProductChooserDetail.innerHTML = "";
+  });
+
   if (window.desktopTrier?.onProductsUpdated) {
     window.desktopTrier.onProductsUpdated((result) => applyTrierProducts(result));
     window.desktopTrier.onSyncError?.((error) => {
@@ -7563,20 +8574,137 @@
     loadTrierProducts(false, true);
   }
 
-  elements.quoteProductSearch.addEventListener("input", debounce(() => {
+  // Auto-updater event listeners
+  if (window.electronAPI?.onUpdateChecking) {
+    window.electronAPI.onUpdateChecking(() => {
+      elements.checkUpdatesButton.disabled = true;
+      elements.checkUpdatesButton.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="spin"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+        <span>Verificando...</span>
+      `;
+    });
+  }
+
+  if (window.electronAPI?.onUpdateAvailable) {
+    window.electronAPI.onUpdateAvailable((info) => {
+      elements.checkUpdatesButton.disabled = false;
+      elements.checkUpdatesButton.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+        <span>Verificar atualização</span>
+      `;
+      elements.updateVersion.textContent = `Versão ${info.version} disponível`;
+      elements.updateNotes.innerHTML = info.releaseNotes
+        ? info.releaseNotes.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join("")
+        : "<p>Novidades não disponíveis.</p>";
+      elements.updateProgress.classList.add("hidden");
+      elements.updateError.classList.add("hidden");
+      elements.updateDownload.classList.remove("hidden");
+      elements.updateInstall.classList.add("hidden");
+      openModal(elements.updateModal);
+    });
+  }
+
+  if (window.electronAPI?.onUpdateNotAvailable) {
+    window.electronAPI.onUpdateNotAvailable(() => {
+      elements.checkUpdatesButton.disabled = false;
+      elements.checkUpdatesButton.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+        <span>Verificar atualização</span>
+      `;
+      elements.updateVersion.textContent = "Você está na versão mais recente";
+      elements.updateNotes.innerHTML = "<p>Nenhuma atualização disponível no momento.</p>";
+      elements.updateProgress.classList.add("hidden");
+      elements.updateError.classList.add("hidden");
+      elements.updateDownload.classList.add("hidden");
+      elements.updateInstall.classList.add("hidden");
+      openModal(elements.updateModal);
+    });
+  }
+
+  if (window.electronAPI?.onUpdateError) {
+    window.electronAPI.onUpdateError((info) => {
+      elements.checkUpdatesButton.disabled = false;
+      elements.checkUpdatesButton.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+        <span>Verificar atualização</span>
+      `;
+      elements.updateError.textContent = info.message;
+      elements.updateError.classList.remove("hidden");
+      elements.updateProgress.classList.add("hidden");
+      elements.updateDownload.classList.remove("hidden");
+      elements.updateInstall.classList.add("hidden");
+      openModal(elements.updateModal);
+    });
+  }
+
+  if (window.electronAPI?.onUpdateProgress) {
+    window.electronAPI.onUpdateProgress((progress) => {
+      const percent = Math.round(progress.percent || 0);
+      elements.progressFill.style.width = `${percent}%`;
+      elements.progressText.textContent = `Baixando... ${percent}% (${formatBytes(progress.transferred)} / ${formatBytes(progress.total)})`;
+    });
+  }
+
+  if (window.electronAPI?.onUpdateDownloaded) {
+    window.electronAPI.onUpdateDownloaded((info) => {
+      elements.updateProgress.classList.add("hidden");
+      elements.updateDownload.classList.add("hidden");
+      elements.updateInstall.classList.remove("hidden");
+      elements.updateVersion.textContent = `Versão ${info.version} baixada e pronta para instalar`;
+      if (info.releaseNotes) {
+        elements.updateNotes.innerHTML = info.releaseNotes.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+      }
+    });
+  }
+
+  if (!window.desktopTrier) {
+    setInterval(() => {
+      if (!elements.whatsappQuoteModal.classList.contains("hidden")) {
+        void loadTrierProducts(false, true);
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  let quoteSearchTimer;
+  elements.quoteProductSearch.addEventListener("input", () => {
     state.selectedQuoteProduct = null;
     elements.quoteAddProduct.disabled = true;
     elements.quoteSelectedProduct.classList.add("hidden");
     elements.quoteProductPrice.value = "";
-    renderQuoteSearchResults();
-  }, 120));
+    clearTimeout(quoteSearchTimer);
+    quoteSearchTimer = setTimeout(() => {
+      const query = elements.quoteProductSearch.value.trim();
+      if (query.length < 2) {
+        renderQuoteSearchResults();
+        return;
+      }
+      const exactProduct = findExactQuoteProduct(query);
+      if (exactProduct && query.replace(/\D/g, "").length >= 8) {
+        selectQuoteProduct(exactProduct, { focusQuantity: false });
+      } else {
+        const exactName = findExactQuoteName(query);
+        if (exactName) selectQuoteProduct(exactName, { focusQuantity: false });
+        else openQuoteProductChooser(query);
+      }
+    }, 350);
+  });
 
   elements.quoteProductSearch.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    renderQuoteSearchResults();
-    const firstResult = elements.quoteSearchResults.querySelector("[data-trier-product-index]");
-    if (firstResult) selectQuoteProduct(state.trierProducts[Number(firstResult.dataset.trierProductIndex)]);
+    clearTimeout(quoteSearchTimer);
+    if (state.selectedQuoteProduct && elements.quoteProductSearch.value === state.selectedQuoteProduct.name) return;
+    const exactProduct = findExactQuoteProduct(elements.quoteProductSearch.value);
+    if (exactProduct) {
+      selectQuoteProduct(exactProduct);
+      return;
+    }
+    const exactName = findExactQuoteName(elements.quoteProductSearch.value);
+    if (exactName) {
+      selectQuoteProduct(exactName);
+      return;
+    }
+    openQuoteProductChooser(elements.quoteProductSearch.value);
   });
 
   elements.quoteSearchResults.addEventListener("click", (event) => {
@@ -7590,12 +8718,18 @@
     addSelectedProductToQuote();
   });
 
+  elements.quoteAddProduct.addEventListener("click", () => {
+    addSelectedProductToQuote();
+  });
+
   elements.quoteItems.addEventListener("change", (event) => {
+    if (state.submittingQuoteToPdv) return;
     const input = event.target.closest("[data-quote-item-action]");
     if (!input || input.dataset.quoteItemAction === "remove") return;
     const itemId = input.closest("[data-quote-item-id]")?.dataset.quoteItemId;
     const item = state.whatsappQuoteItems.find((entry) => entry.id === itemId);
     if (!item) return;
+    resetQuotePdvSubmission();
     if (input.dataset.quoteItemAction === "quantity") {
       const quantity = Number(input.value);
       item.quantity = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
@@ -7607,20 +8741,34 @@
   });
 
   elements.quoteItems.addEventListener("click", (event) => {
+    if (state.submittingQuoteToPdv) return;
     const removeButton = event.target.closest("[data-quote-item-action='remove']");
     if (!removeButton) return;
     const itemId = removeButton.closest("[data-quote-item-id]")?.dataset.quoteItemId;
+    resetQuotePdvSubmission();
     state.whatsappQuoteItems = state.whatsappQuoteItems.filter((item) => item.id !== itemId);
     renderWhatsappQuote();
   });
 
   elements.clearWhatsappQuote.addEventListener("click", () => {
-    if (!state.whatsappQuoteItems.length) return;
+    if (!state.whatsappQuoteItems.length || state.submittingQuoteToPdv) return;
     if (!window.confirm("Deseja limpar todos os itens deste orçamento?")) return;
+    resetQuotePdvSubmission();
     state.whatsappQuoteItems = [];
     elements.quoteCustomerName.value = "";
+    elements.quoteCustomerCpf.value = "";
     resetQuoteProductSelection();
     renderWhatsappQuote();
+  });
+
+  [elements.quoteCustomerName, elements.quoteCustomerCpf].forEach((input) => {
+    input.addEventListener("input", () => {
+      if (!state.quotePdvSale) state.quotePdvOrderId = "";
+    });
+  });
+
+  elements.quoteCustomerCpf.addEventListener("input", () => {
+    elements.quoteCustomerCpf.value = elements.quoteCustomerCpf.value.replace(/\D/g, "").slice(0, 11);
   });
 
   elements.copyWhatsappQuote.addEventListener("click", async () => {
@@ -7634,21 +8782,130 @@
     }
   });
 
+  elements.sendPdvQuote.addEventListener("click", sendQuoteToPdv);
+
   elements.sendWhatsappQuote.addEventListener("click", () => {
     if (!state.whatsappQuoteItems.length) return;
     window.open(`https://wa.me/?text=${encodeURIComponent(buildWhatsappQuoteMessage())}`, "_blank", "noopener");
+  });
+
+  elements.closeCashback.addEventListener("click", () => {
+    closeModal(elements.cashbackModal);
+  });
+
+  elements.cashbackForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await createCashbackCredit();
+  });
+
+  elements.cashbackCancelPrefill.addEventListener("click", () => {
+    resetCashbackForm();
+    elements.cashbackName.focus();
+  });
+
+  elements.cashbackValidityDays.addEventListener("input", updateCashbackExpirationPreview);
+  elements.cashbackSaleDate.addEventListener("input", updateCashbackExpirationPreview);
+
+  [elements.cashbackPurchaseValue, elements.cashbackPercent].forEach((input) => {
+    input.addEventListener("input", calculateCashbackFormAmount);
+    input.addEventListener("blur", () => {
+      const amount = parseNumberValue(input.value);
+      if (amount !== null) input.value = formatDecimalInput(amount);
+      calculateCashbackFormAmount();
+    });
+  });
+
+  elements.cashbackCpf.addEventListener("input", () => {
+    elements.cashbackCpf.value = formatCashbackCpf(elements.cashbackCpf.value);
+  });
+
+  elements.cashbackPhone.addEventListener("input", () => {
+    elements.cashbackPhone.value = formatCashbackPhone(elements.cashbackPhone.value);
+  });
+
+  elements.cashbackSearch.addEventListener("input", debounce(() => {
+    state.cashbackSearch = elements.cashbackSearch.value;
+    renderCashbackClients();
+  }, 100));
+
+  elements.cashbackFilterToggle.addEventListener("click", () => {
+    const opening = elements.cashbackFilterMenu.classList.contains("hidden");
+    elements.cashbackFilterMenu.classList.toggle("hidden", !opening);
+    elements.cashbackFilterToggle.setAttribute("aria-expanded", String(opening));
+  });
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest(".cashback-filter-wrap")) return;
+    elements.cashbackFilterMenu.classList.add("hidden");
+    elements.cashbackFilterToggle.setAttribute("aria-expanded", "false");
+  });
+
+  elements.cashbackFilterMenu.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-cashback-filter]");
+    if (button) setCashbackFilter(button.dataset.cashbackFilter);
+  });
+
+  elements.cashbackActiveFilter.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-cashback-filter]");
+    if (button) setCashbackFilter(button.dataset.cashbackFilter);
+  });
+
+  elements.cashbackClientList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-cashback-action]");
+    if (!button) return;
+    const { cashbackAction, clientId, creditId } = button.dataset;
+    if (cashbackAction === "add-credit") {
+      prefillCashbackClient(clientId);
+    } else if (cashbackAction === "message") {
+      openCashbackMessageModal(clientId);
+    } else if (cashbackAction === "edit-client") {
+      editCashbackClient(clientId);
+    } else if (cashbackAction === "remove-credit") {
+      await removeCashbackCredit(clientId, creditId);
+    } else if (cashbackAction === "remove-client") {
+      await removeCashbackClient(clientId);
+    }
+  });
+
+  elements.cashbackMessageOptions.addEventListener("change", updateCashbackMessagePreview);
+  elements.closeCashbackMessage.addEventListener("click", closeCashbackMessageModal);
+  elements.cancelCashbackMessage.addEventListener("click", closeCashbackMessageModal);
+
+  elements.copyCashbackMessage.addEventListener("click", async () => {
+    const { client, credits } = getSelectedCashbackCredits();
+    const message = buildCashbackMessage(client, credits);
+    if (!message) return;
+    try {
+      await copyChatMessage(message);
+      showToast("Mensagem do CashBack copiada.");
+    } catch (error) {
+      console.error("Erro ao copiar mensagem do CashBack:", error);
+      showToast("Não foi possível copiar a mensagem.");
+    }
+  });
+
+  elements.sendCashbackMessage.addEventListener("click", () => {
+    const { client, credits } = getSelectedCashbackCredits();
+    const message = buildCashbackMessage(client, credits);
+    if (!client || !message) return;
+    let phone = String(client.phone || "").replace(/\D/g, "");
+    if (phone.length === 10 || phone.length === 11) phone = `55${phone}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   });
 
   elements.closePurchases.addEventListener("click", () => {
     closeModal(elements.purchasesModal);
   });
 
+  elements.refreshPurchases.addEventListener("click", refreshPurchaseData);
+
   elements.purchasesTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       const tabName = tab.dataset.purchasesTab;
       setPurchasesTab(tabName);
       setTimeout(() => {
-        (tabName === "orders" ? elements.orderName : elements.shortageProduct).focus();
+        if (tabName === "orders") elements.orderName.focus();
+        else if (tabName === "shortages") elements.shortageProduct.focus();
       }, 0);
     });
   });
@@ -7658,9 +8915,17 @@
     await createPurchaseShortage();
   });
 
+  elements.shortageCancelEdit.addEventListener("click", () => {
+    resetPurchaseShortageForm();
+  });
+
   elements.orderForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     await createPurchaseOrder();
+  });
+
+  elements.orderCancelEdit.addEventListener("click", () => {
+    resetPurchaseOrderForm();
   });
 
   elements.orderPhone.addEventListener("input", () => {
@@ -7669,6 +8934,10 @@
 
   elements.shortagesList.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-purchase-action]");
+    if (button?.dataset.purchaseAction === "edit-shortage") {
+      editPurchaseShortage(button.dataset.purchaseId);
+      return;
+    }
     if (button?.dataset.purchaseAction === "remove-shortage") {
       await removePurchaseRecord("shortage", button.dataset.purchaseId);
     }
@@ -7684,8 +8953,21 @@
   });
 
   elements.ordersList.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-purchase-action='remove-order']");
-    if (button) await removePurchaseRecord("order", button.dataset.purchaseId);
+    const button = event.target.closest("[data-purchase-action]");
+    if (button?.dataset.purchaseAction === "edit-order") {
+      editPurchaseOrder(button.dataset.purchaseId);
+    } else if (button?.dataset.purchaseAction === "remove-order") {
+      await removePurchaseRecord("order", button.dataset.purchaseId);
+    } else if (button?.dataset.purchaseAction === "complete-order") {
+      await completePurchaseOrder(button.dataset.purchaseId);
+    }
+  });
+
+  elements.completedOrdersList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-purchase-action]");
+    if (button?.dataset.purchaseAction === "remove-completed-order") {
+      await removeCompletedPurchaseOrder(button.dataset.purchaseId);
+    }
   });
 
   elements.closePricing.addEventListener("click", () => {
@@ -8229,7 +9511,7 @@
     closeModal(elements.clinicalModal);
   });
 
-  [elements.patientModal, elements.patientsModal, elements.serviceModal, elements.historyModal, elements.usersModal, elements.registerModal, elements.doctorsModal, elements.doctorLookupModal, elements.purchasesModal, elements.pricingModal, elements.onlineOffersModal, elements.offerSheetModal, elements.savedOfferArtsModal, elements.offerArtNameModal, elements.medicinesModal, elements.chatModal].forEach((modal) => {
+  [elements.patientModal, elements.patientsModal, elements.serviceModal, elements.historyModal, elements.usersModal, elements.registerModal, elements.doctorsModal, elements.doctorLookupModal, elements.purchasesModal, elements.cashbackModal, elements.cashbackMessageModal, elements.pricingModal, elements.onlineOffersModal, elements.offerSheetModal, elements.savedOfferArtsModal, elements.offerArtNameModal, elements.medicinesModal, elements.chatModal].forEach((modal) => {
     modal.addEventListener("click", (event) => {
       if (event.target === modal) {
         closeModal(modal);

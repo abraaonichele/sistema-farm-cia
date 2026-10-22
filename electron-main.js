@@ -1,6 +1,9 @@
 const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
+const http = require("http");
 const fs = require("fs/promises");
 const path = require("path");
+const { spawn } = require("child_process");
+const { autoUpdater } = require("electron-updater");
 const {
   fetchTrierProducts,
   loadTrierProductCache,
@@ -8,6 +11,82 @@ const {
   saveTrierProductCache,
   TRIER_DEFAULT_BASE_URL,
 } = require("./trier-products.cjs");
+const { sendTrierEcommerceSale } = require("./trier-sales.cjs");
+
+// ===== AUTO-UPDATER CONFIGURATION =====
+autoUpdater.logger = require("electron-log");
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on("checking-for-update", () => {
+  broadcastUpdateEvent("update:checking");
+});
+
+autoUpdater.on("update-available", (info) => {
+  broadcastUpdateEvent("update:available", {
+    version: info.version,
+    releaseNotes: info.releaseNotes,
+    releaseDate: info.releaseDate,
+  });
+});
+
+autoUpdater.on("update-not-available", () => {
+  broadcastUpdateEvent("update:not-available");
+});
+
+autoUpdater.on("error", (err) => {
+  broadcastUpdateEvent("update:error", { message: err?.message || "Erro ao verificar atualização" });
+});
+
+autoUpdater.on("download-progress", (progress) => {
+  broadcastUpdateEvent("update:progress", {
+    percent: progress.percent,
+    transferred: progress.transferred,
+    total: progress.total,
+    bytesPerSecond: progress.bytesPerSecond,
+  });
+});
+
+autoUpdater.on("update-downloaded", (info) => {
+  broadcastUpdateEvent("update:downloaded", {
+    version: info.version,
+    releaseNotes: info.releaseNotes,
+  });
+});
+
+function broadcastUpdateEvent(channel, payload = {}) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send(channel, payload);
+  }
+}
+
+// IPC handlers for auto-updater
+function registerAutoUpdaterHandlers() {
+  ipcMain.handle("update:check", async () => {
+    if (!app.isPackaged) return { error: "Atualizações só funcionam no app instalado (não em desenvolvimento)." };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { updateInfo: result?.updateInfo };
+    } catch (error) {
+      return { error: error?.message || "Erro ao verificar atualização" };
+    }
+  });
+
+  ipcMain.handle("update:download", async () => {
+    if (!app.isPackaged) return { error: "Atualizações só funcionam no app instalado." };
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true };
+    } catch (error) {
+      return { error: error?.message || "Erro ao baixar atualização" };
+    }
+  });
+
+  ipcMain.handle("update:install", async () => {
+    if (!app.isPackaged) return { error: "Atualizações só funcionam no app instalado." };
+    autoUpdater.quitAndInstall(true, true);
+  });
+}
 
 let trierProductsCache = null;
 let trierProductsCacheAt = 0;
@@ -20,8 +99,11 @@ let trierSyncInProgress = false;
 let trierLastSyncError = "";
 
 const TRIER_CACHE_DURATION_MS = 5 * 60 * 1000;
+const TRIER_BROWSER_SERVICE_ARGUMENT = "--trier-browser-service";
+const TRIER_BROWSER_SERVICE_PORT = 43187;
 const LEGACY_LOCAL_TRIER_BASE_URL = "http://localhost:4647/sgfpod1";
 const PREVIOUS_UNREACHABLE_TRIER_BASE_URL = "http://192.168.1.25:4647/sgfpod1";
+let trierBrowserServer = null;
 
 function getTrierConfigPath() {
   return path.join(app.getPath("userData"), "trier-integration.json");
@@ -205,6 +287,10 @@ function registerTrierHandlers() {
   });
   ipcMain.handle("trier:save-config", async (_event, payload) => saveTrierConfig(payload || {}));
   ipcMain.handle("trier:get-products", async (_event, payload) => fetchAllTrierProducts(Boolean(payload?.forceRefresh)));
+  ipcMain.handle("trier:send-sale", async (_event, payload) => {
+    const config = await readTrierConfig();
+    return sendTrierEcommerceSale(config, payload || {});
+  });
 }
 
 function broadcastTrierEvent(channel, payload) {
@@ -235,6 +321,96 @@ function startTrierAutomaticSync() {
   if (trierSyncInterval) clearInterval(trierSyncInterval);
   setTimeout(syncTrierProductsAutomatically, 1_500);
   trierSyncInterval = setInterval(syncTrierProductsAutomatically, TRIER_CACHE_DURATION_MS);
+}
+
+function sendTrierBrowserResponse(response, statusCode, body) {
+  response.writeHead(statusCode, {
+    "Access-Control-Allow-Origin": "null",
+    "Cache-Control": "no-store",
+    "Content-Type": "application/json; charset=utf-8",
+    "Vary": "Origin",
+    "X-Content-Type-Options": "nosniff",
+  });
+  response.end(JSON.stringify(body));
+}
+
+function startTrierBrowserService() {
+  trierBrowserServer = http.createServer(async (request, response) => {
+    const localHosts = [
+      `127.0.0.1:${TRIER_BROWSER_SERVICE_PORT}`,
+      `localhost:${TRIER_BROWSER_SERVICE_PORT}`,
+    ];
+    if (!localHosts.includes(request.headers.host) || request.headers.origin !== "null") {
+      sendTrierBrowserResponse(response, 403, { error: "Acesso local não autorizado." });
+      return;
+    }
+
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, {
+        "Access-Control-Allow-Origin": "null",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "600",
+        "Vary": "Origin",
+      });
+      response.end();
+      return;
+    }
+
+    const route = new URL(request.url || "/", `http://127.0.0.1:${TRIER_BROWSER_SERVICE_PORT}`).pathname;
+    if (request.method !== "GET" || !["/trier/status", "/trier/products"].includes(route)) {
+      sendTrierBrowserResponse(response, 404, { error: "Rota local não encontrada." });
+      return;
+    }
+
+    try {
+      if (route === "/trier/status") {
+        const config = await readTrierConfig();
+        sendTrierBrowserResponse(response, 200, {
+          baseUrl: config.baseUrl,
+          configured: Boolean(config.token),
+        });
+        return;
+      }
+
+      const result = await fetchAllTrierProducts(false);
+      sendTrierBrowserResponse(response, 200, result);
+    } catch (error) {
+      sendTrierBrowserResponse(response, 503, {
+        error: error?.message || "Não foi possível carregar os produtos Trier.",
+      });
+    }
+  });
+
+  trierBrowserServer.on("error", (error) => {
+    console.error("Não foi possível iniciar o serviço local do catálogo Trier:", error);
+  });
+  trierBrowserServer.listen(TRIER_BROWSER_SERVICE_PORT, "127.0.0.1");
+}
+
+function startTrierBrowserServiceProcess() {
+  if (process.platform !== "win32" || !app.isPackaged) return;
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      args: [TRIER_BROWSER_SERVICE_ARGUMENT],
+      name: "Atendimento Inj Farmacia",
+    });
+    const serviceArguments = app.isPackaged
+      ? [TRIER_BROWSER_SERVICE_ARGUMENT]
+      : [app.getAppPath(), TRIER_BROWSER_SERVICE_ARGUMENT];
+    const service = spawn(process.execPath, serviceArguments, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    service.on("error", (error) => {
+      console.error("Não foi possível iniciar o serviço Trier para o navegador:", error);
+    });
+    service.unref();
+  } catch (error) {
+    console.error("Não foi possível configurar o serviço Trier para iniciar com o Windows:", error);
+  }
 }
 
 function validateOfferPrintRequest(payload) {
@@ -395,21 +571,40 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
-  registerOfferPrintingHandlers();
-  registerTrierHandlers();
-  createWindow();
-  startTrierAutomaticSync();
+if (process.argv.includes(TRIER_BROWSER_SERVICE_ARGUMENT)) {
+  if (app.requestSingleInstanceLock()) {
+    app.whenReady().then(() => {
+      startTrierBrowserService();
+      startTrierAutomaticSync();
+    });
+  } else {
+    app.quit();
+  }
+} else {
+  app.whenReady().then(() => {
+    registerOfferPrintingHandlers();
+    registerTrierHandlers();
+    registerAutoUpdaterHandlers();
+    createWindow();
+    startTrierAutomaticSync();
+    startTrierBrowserServiceProcess();
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    // Verificar atualizações na inicialização (após 10s)
+    setTimeout(() => {
+      if (app.isPackaged) autoUpdater.checkForUpdates();
+    }, 10_000);
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
   });
-});
+}
 
 app.on("before-quit", () => {
   if (trierSyncInterval) clearInterval(trierSyncInterval);
+  if (trierBrowserServer) trierBrowserServer.close();
 });
 
 app.on("window-all-closed", () => {

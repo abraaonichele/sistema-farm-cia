@@ -1,5 +1,6 @@
 node_modules/
 dist/
+/instaladores/
 .firebase/
 .DS_Store
 /trier-integration.json

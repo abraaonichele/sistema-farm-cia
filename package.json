@@ -1,6 +1,6 @@
 {
   "name": "atendimento-inj-farmacia",
-  "version": "1.0.25",
+  "version": "1.0.28",
   "description": "Aplicativo desktop para atendimento de injetaveis com Firebase.",
   "main": "electron-main.js",
   "author": "Mega",
@@ -12,16 +12,21 @@
   },
   "scripts": {
     "start": "electron .",
-    "test:trier": "node --test tests/trier-products.test.cjs",
+    "test:trier": "node --test tests/trier-products.test.cjs tests/trier-sales.test.cjs",
     "supabase:password-reset": "node scripts/serve-supabase-password-reset.mjs",
     "data:compact": "node gerar-dados-medicamentos-compactos.mjs",
-    "build:win": "electron-builder --win nsis --x64 --publish never",
-    "build:win7": "electron-builder --win nsis --x64 --publish never",
-    "build:win:ia32": "electron-builder --win nsis --ia32 --publish never",
-    "build:win7:ia32": "electron-builder --win nsis --ia32 --publish never",
-    "build:win:portable": "electron-builder --win portable --x64 --publish never",
-    "build:mac": "electron-builder --mac --publish never",
+    "build:win": "node scripts/build-installers.cjs windows",
+    "build:win7": "node scripts/build-installers.cjs windows",
+    "build:win:ia32": "node scripts/build-installers.cjs windows-ia32",
+    "build:win7:ia32": "node scripts/build-installers.cjs windows-ia32",
+    "build:win:portable": "node scripts/build-installers.cjs windows-portable",
+    "build:mac": "node scripts/build-installers.cjs macos",
+    "build:installers": "node scripts/build-installers.cjs all",
+    "build:installers:publish": "node scripts/build-installers.cjs all --publish",
     "build:dir": "electron-builder --dir --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
     "electron": "22.3.27",
@@ -34,7 +39,7 @@
     "artifactName": "Atendimento-Inj-Farmacia-Setup-${version}.${ext}",
     "icon": "build/icon.ico",
     "directories": {
-      "output": "dist"
+      "output": "instaladores/.build-output"
     },
     "files": [
       "electron-main.js",
@@ -44,6 +49,7 @@
       "styles.css",
       "offer-template.css",
       "trier-products.cjs",
+      "trier-sales.cjs",
       "public-offers/supabase-config.js",
       "assets/**/*",
       "package.json"
@@ -77,6 +83,11 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Atendimento Inj Farmacia"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "abraaonichele",
+      "repo": "sistema-farm-cia"
     }
   }
 }
