@@ -5292,6 +5292,10 @@ body {
   border-top: 1px solid rgba(99, 115, 138, 0.12);
 }
 
+.update-check-row {
+  justify-content: flex-end;
+}
+
 .pricing-breakdown-head span {
   display: block;
   font-weight: 800;
