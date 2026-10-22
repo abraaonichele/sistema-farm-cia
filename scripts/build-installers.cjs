@@ -48,7 +48,8 @@ async function buildInstaller(platform) {
     });
     const installerExtension = platform.startsWith("windows") ? ".exe" : ".dmg";
     for (const entry of fs.readdirSync(stagingDir, { withFileTypes: true })) {
-      if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== installerExtension) {
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!entry.isFile() || (ext !== installerExtension && ext !== ".yml")) {
         fs.rmSync(path.join(stagingDir, entry.name), { recursive: true, force: true });
       }
     }
