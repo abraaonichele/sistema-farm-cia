@@ -1,6 +1,6 @@
 {
   "name": "atendimento-inj-farmacia",
-  "version": "1.0.32",
+  "version": "1.0.33",
   "description": "Aplicativo desktop para atendimento de injetaveis com Firebase.",
   "main": "electron-main.js",
   "author": "Mega",
