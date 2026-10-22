@@ -2938,6 +2938,10 @@
   }
 
   function openModal(modal) {
+    // Move modal para body para evitar stacking context da navbar/sidebar
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("overlay-open");

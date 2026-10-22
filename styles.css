@@ -1266,7 +1266,7 @@ button {
   padding: 24px;
   background: rgba(18, 29, 48, 0.45);
   backdrop-filter: blur(14px);
-  z-index: 9999;
+  z-index: 100000;
 }
 
 .hidden {
