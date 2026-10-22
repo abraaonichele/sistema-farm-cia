@@ -3497,6 +3497,19 @@
     openModal(elements.accountModal);
   }
 
+  function openUpdateModal() {
+    if (!window.electronAPI?.updateCheck) {
+      showToast("Atualizações só funcionam no app instalado.");
+      return;
+    }
+    elements.checkUpdatesButton.disabled = true;
+    elements.checkUpdatesButton.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="spin"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+      <span>Verificando...</span>
+    `;
+    window.electronAPI.updateCheck();
+  }
+
   function renderDoctorsList() {
     if (!elements.doctorsList) return;
 
