@@ -9978,6 +9978,11 @@
 
   renderAuthState();
 
+  // Mostrar botão de verificar atualizações
+  if (elements.checkUpdatesButton) {
+    elements.checkUpdatesButton.classList.remove("hidden");
+  }
+
   try {
     await initializeFirestoreState();
     resolveCurrentUser();
