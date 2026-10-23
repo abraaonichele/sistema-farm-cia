@@ -60,6 +60,7 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           DEBUG: 'electron-builder,builder-util-runtime'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:installers:publish
 
       - name: Verify release artifacts
