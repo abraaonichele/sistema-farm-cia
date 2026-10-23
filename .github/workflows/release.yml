@@ -63,6 +63,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/build-installers.cjs ${{ matrix.platform }} --publish
 
+      - name: Debug - List instaladores after build
+        if: always()
+        shell: bash
+        run: |
+          echo "=== instaladores directory tree ==="
+          find instaladores -type f -o -type d | head -30
+          echo "=== instaladores/windows (if exists) ==="
+          ls -la instaladores/windows/ 2>/dev/null || echo "NOT FOUND"
+          echo "=== instaladores/Macos (if exists) ==="
+          ls -la instaladores/Macos/ 2>/dev/null || echo "NOT FOUND"
+
       - name: Verify release artifacts
         if: success()
         shell: bash
