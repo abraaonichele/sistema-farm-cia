@@ -21,11 +21,23 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
+            folder: Macos
           - os: windows-latest
             platform: win
+            folder: windows
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug - Check GH_TOKEN
+        run: |
+          echo "GH_TOKEN length: ${#GH_TOKEN}"
+          echo "GH_TOKEN starts with: ${GH_TOKEN:0:4}..."
+          echo "Repository: ${{ github.repository }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,11 +52,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          DEBUG: 'electron-builder,builder-util-runtime'
         run: npm run build:installers:publish
-        continue-on-error: false
 
       - name: Verify release artifacts
         if: success()
         run: |
-          echo "Build completed for ${{ matrix.platform }}"
-          ls -la instaladores/${{ matrix.platform == 'mac' && 'Macos' || 'windows' }}/
+          echo "=== Build completed for ${{ matrix.platform }} ==="
+          ls -la instaladores/${{ matrix.folder }}/
+          echo "=== Checking for .yml files ==="
+          find instaladores/${{ matrix.folder }}/ -name "*.yml" -o -name "*.yaml" | head -20
+
+      - name: Verify release on GitHub
+        if: success() && github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "=== Checking GitHub releases ==="
+          gh release list --repo ${{ github.repository }} --limit 5
+          echo "=== Latest release info ==="
+          gh release view --repo ${{ github.repository }} --json tagName,name,assets --jq '. | {tag: .tagName, assets: .assets[].name}'
