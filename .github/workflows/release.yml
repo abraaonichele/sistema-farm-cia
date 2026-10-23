@@ -4,15 +4,19 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build-and-release:
-    name: Build and Release
+    name: Build and Release (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -26,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -35,4 +39,12 @@ jobs:
       - name: Build and publish ${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run build:installers:publish
+        continue-on-error: false
+
+      - name: Verify release artifacts
+        if: success()
+        run: |
+          echo "Build completed for ${{ matrix.platform }}"
+          ls -la instaladores/${{ matrix.platform == 'mac' && 'Macos' || 'windows' }}/
