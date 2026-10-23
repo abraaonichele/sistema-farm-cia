@@ -34,6 +34,7 @@ jobs:
           fetch-depth: 0
 
       - name: Debug - Validate GH_TOKEN
+        shell: bash
         run: |
           echo "=== GH_TOKEN Validation ==="
           if [ -z "$GH_TOKEN" ]; then
