@@ -3,7 +3,6 @@ const http = require("http");
 const fs = require("fs/promises");
 const path = require("path");
 const { spawn } = require("child_process");
-const { autoUpdater } = require("electron-updater");
 const {
   fetchTrierProducts,
   loadTrierProductCache,
@@ -12,81 +11,6 @@ const {
   TRIER_DEFAULT_BASE_URL,
 } = require("./trier-products.cjs");
 const { sendTrierEcommerceSale } = require("./trier-sales.cjs");
-
-// ===== AUTO-UPDATER CONFIGURATION =====
-autoUpdater.logger = require("electron-log");
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
-
-autoUpdater.on("checking-for-update", () => {
-  broadcastUpdateEvent("update:checking");
-});
-
-autoUpdater.on("update-available", (info) => {
-  broadcastUpdateEvent("update:available", {
-    version: info.version,
-    releaseNotes: info.releaseNotes,
-    releaseDate: info.releaseDate,
-  });
-});
-
-autoUpdater.on("update-not-available", () => {
-  broadcastUpdateEvent("update:not-available");
-});
-
-autoUpdater.on("error", (err) => {
-  broadcastUpdateEvent("update:error", { message: err?.message || "Erro ao verificar atualização" });
-});
-
-autoUpdater.on("download-progress", (progress) => {
-  broadcastUpdateEvent("update:progress", {
-    percent: progress.percent,
-    transferred: progress.transferred,
-    total: progress.total,
-    bytesPerSecond: progress.bytesPerSecond,
-  });
-});
-
-autoUpdater.on("update-downloaded", (info) => {
-  broadcastUpdateEvent("update:downloaded", {
-    version: info.version,
-    releaseNotes: info.releaseNotes,
-  });
-});
-
-function broadcastUpdateEvent(channel, payload = {}) {
-  for (const window of BrowserWindow.getAllWindows()) {
-    if (!window.isDestroyed()) window.webContents.send(channel, payload);
-  }
-}
-
-// IPC handlers for auto-updater
-function registerAutoUpdaterHandlers() {
-  ipcMain.handle("update:check", async () => {
-    if (!app.isPackaged) return { error: "Atualizações só funcionam no app instalado (não em desenvolvimento)." };
-    try {
-      const result = await autoUpdater.checkForUpdates();
-      return { updateInfo: result?.updateInfo };
-    } catch (error) {
-      return { error: error?.message || "Erro ao verificar atualização" };
-    }
-  });
-
-  ipcMain.handle("update:download", async () => {
-    if (!app.isPackaged) return { error: "Atualizações só funcionam no app instalado." };
-    try {
-      await autoUpdater.downloadUpdate();
-      return { success: true };
-    } catch (error) {
-      return { error: error?.message || "Erro ao baixar atualização" };
-    }
-  });
-
-  ipcMain.handle("update:install", async () => {
-    if (!app.isPackaged) return { error: "Atualizações só funcionam no app instalado." };
-    autoUpdater.quitAndInstall(true, true);
-  });
-}
 
 let trierProductsCache = null;
 let trierProductsCacheAt = 0;
@@ -584,15 +508,9 @@ if (process.argv.includes(TRIER_BROWSER_SERVICE_ARGUMENT)) {
   app.whenReady().then(() => {
     registerOfferPrintingHandlers();
     registerTrierHandlers();
-    registerAutoUpdaterHandlers();
     createWindow();
     startTrierAutomaticSync();
     startTrierBrowserServiceProcess();
-
-    // Verificar atualizações na inicialização (após 10s)
-    setTimeout(() => {
-      if (app.isPackaged) autoUpdater.checkForUpdates();
-    }, 10_000);
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {

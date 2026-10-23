@@ -596,17 +596,6 @@
     loginPassword: document.getElementById("login-password"),
     currentUserLabel: document.getElementById("current-user-label"),
     logoutButton: document.getElementById("logout-button"),
-    checkUpdatesButton: document.getElementById("check-updates"),
-    updateModal: document.getElementById("update-modal"),
-    closeUpdateModal: document.getElementById("close-update-modal"),
-    updateVersion: document.getElementById("update-version"),
-    updateNotes: document.getElementById("update-notes"),
-    updateProgress: document.getElementById("update-progress"),
-    progressFill: document.getElementById("progress-fill"),
-    progressText: document.getElementById("progress-text"),
-    updateError: document.getElementById("update-error"),
-    updateCancel: document.getElementById("update-cancel"),
-    updateDownload: document.getElementById("update-download"),
     updateInstall: document.getElementById("update-install"),
     topbarLogout: document.getElementById("topbar-logout"),
     openAccount: document.getElementById("open-account"),
@@ -3499,71 +3488,6 @@
     elements.accountCpf.textContent = user.cpf || "-";
     elements.accountCrf.textContent = user.crf || "-";
     openModal(elements.accountModal);
-  }
-
-  function openUpdateModal() {
-    if (!window.electronAPI?.updateCheck) {
-      showToast("Atualizações só funcionam no app instalado.");
-      return;
-    }
-    elements.checkUpdatesButton.disabled = true;
-    elements.checkUpdatesButton.innerHTML = `
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="spin"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-      <span>Verificando...</span>
-    `;
-
-    let modalOpened = false;
-    const openModalWithInfo = (info) => {
-      if (modalOpened) return;
-      modalOpened = true;
-      elements.checkUpdatesButton.disabled = false;
-      elements.checkUpdatesButton.innerHTML = `
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-        <span>Verificar atualização</span>
-      `;
-
-      if (info.error) {
-        elements.updateVersion.textContent = "Erro ao verificar";
-        elements.updateNotes.innerHTML = `<p>${escapeHtml(info.error)}</p>`;
-        elements.updateProgress.classList.add("hidden");
-        elements.updateError.classList.remove("hidden");
-        elements.updateError.textContent = info.error;
-        elements.updateDownload.classList.add("hidden");
-        elements.updateInstall.classList.add("hidden");
-      } else if (info.updateInfo) {
-        elements.updateVersion.textContent = `Versão ${info.updateInfo.version} disponível`;
-        elements.updateNotes.innerHTML = info.updateInfo.releaseNotes
-          ? info.updateInfo.releaseNotes.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join("")
-          : "<p>Novidades não disponíveis.</p>";
-        elements.updateProgress.classList.add("hidden");
-        elements.updateError.classList.add("hidden");
-        elements.updateDownload.classList.remove("hidden");
-        elements.updateInstall.classList.add("hidden");
-      } else {
-        elements.updateVersion.textContent = "Você está na versão mais recente";
-        elements.updateNotes.innerHTML = "<p>Nenhuma atualização disponível no momento.</p>";
-        elements.updateProgress.classList.add("hidden");
-        elements.updateError.classList.add("hidden");
-        elements.updateDownload.classList.add("hidden");
-        elements.updateInstall.classList.add("hidden");
-      }
-      openModal(elements.updateModal);
-    };
-
-    // Timeout fallback (10s)
-    const timeout = setTimeout(() => {
-      openModalWithInfo({ error: "Tempo esgotado ao verificar atualização." });
-    }, 10000);
-
-    window.electronAPI.updateCheck()
-      .then((result) => {
-        clearTimeout(timeout);
-        openModalWithInfo(result);
-      })
-      .catch((err) => {
-        clearTimeout(timeout);
-        openModalWithInfo({ error: err?.message || "Erro ao verificar atualização." });
-      });
   }
 
   function renderDoctorsList() {
@@ -8381,30 +8305,6 @@
     await logout();
   });
 
-  // Auto-updater handlers
-  elements.checkUpdatesButton.addEventListener("click", () => openUpdateModal());
-  elements.closeUpdateModal.addEventListener("click", () => closeModal(elements.updateModal));
-  elements.updateModal.addEventListener("click", (event) => {
-    if (event.target === elements.updateModal) closeModal(elements.updateModal);
-  });
-  elements.updateCancel.addEventListener("click", () => closeModal(elements.updateModal));
-  elements.updateDownload.addEventListener("click", async () => {
-    elements.updateDownload.classList.add("hidden");
-    elements.updateProgress.classList.remove("hidden");
-    elements.updateError.classList.add("hidden");
-    try {
-      await window.electronAPI.updateDownload();
-    } catch (error) {
-      elements.updateProgress.classList.add("hidden");
-      elements.updateDownload.classList.remove("hidden");
-      elements.updateError.textContent = error?.message || "Erro ao baixar atualização";
-      elements.updateError.classList.remove("hidden");
-    }
-  });
-  elements.updateInstall.addEventListener("click", () => {
-    window.electronAPI.updateInstall();
-  });
-
   elements.sidebarHandle.addEventListener("click", () => {
     setSidebarOpen(!state.sidebarOpen);
   });
@@ -8641,89 +8541,6 @@
       renderQuoteSearchResults();
     });
     loadTrierProducts(false, true);
-  }
-
-  // Auto-updater event listeners
-  if (window.electronAPI?.onUpdateChecking) {
-    window.electronAPI.onUpdateChecking(() => {
-      elements.checkUpdatesButton.disabled = true;
-      elements.checkUpdatesButton.innerHTML = `
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" class="spin"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-        <span>Verificando...</span>
-      `;
-    });
-  }
-
-  if (window.electronAPI?.onUpdateAvailable) {
-    window.electronAPI.onUpdateAvailable((info) => {
-      elements.checkUpdatesButton.disabled = false;
-      elements.checkUpdatesButton.innerHTML = `
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-        <span>Verificar atualização</span>
-      `;
-      elements.updateVersion.textContent = `Versão ${info.version} disponível`;
-      elements.updateNotes.innerHTML = info.releaseNotes
-        ? info.releaseNotes.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join("")
-        : "<p>Novidades não disponíveis.</p>";
-      elements.updateProgress.classList.add("hidden");
-      elements.updateError.classList.add("hidden");
-      elements.updateDownload.classList.remove("hidden");
-      elements.updateInstall.classList.add("hidden");
-      openModal(elements.updateModal);
-    });
-  }
-
-  if (window.electronAPI?.onUpdateNotAvailable) {
-    window.electronAPI.onUpdateNotAvailable(() => {
-      elements.checkUpdatesButton.disabled = false;
-      elements.checkUpdatesButton.innerHTML = `
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-        <span>Verificar atualização</span>
-      `;
-      elements.updateVersion.textContent = "Você está na versão mais recente";
-      elements.updateNotes.innerHTML = "<p>Nenhuma atualização disponível no momento.</p>";
-      elements.updateProgress.classList.add("hidden");
-      elements.updateError.classList.add("hidden");
-      elements.updateDownload.classList.add("hidden");
-      elements.updateInstall.classList.add("hidden");
-      openModal(elements.updateModal);
-    });
-  }
-
-  if (window.electronAPI?.onUpdateError) {
-    window.electronAPI.onUpdateError((info) => {
-      elements.checkUpdatesButton.disabled = false;
-      elements.checkUpdatesButton.innerHTML = `
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-        <span>Verificar atualização</span>
-      `;
-      elements.updateError.textContent = info.message;
-      elements.updateError.classList.remove("hidden");
-      elements.updateProgress.classList.add("hidden");
-      elements.updateDownload.classList.remove("hidden");
-      elements.updateInstall.classList.add("hidden");
-      openModal(elements.updateModal);
-    });
-  }
-
-  if (window.electronAPI?.onUpdateProgress) {
-    window.electronAPI.onUpdateProgress((progress) => {
-      const percent = Math.round(progress.percent || 0);
-      elements.progressFill.style.width = `${percent}%`;
-      elements.progressText.textContent = `Baixando... ${percent}% (${formatBytes(progress.transferred)} / ${formatBytes(progress.total)})`;
-    });
-  }
-
-  if (window.electronAPI?.onUpdateDownloaded) {
-    window.electronAPI.onUpdateDownloaded((info) => {
-      elements.updateProgress.classList.add("hidden");
-      elements.updateDownload.classList.add("hidden");
-      elements.updateInstall.classList.remove("hidden");
-      elements.updateVersion.textContent = `Versão ${info.version} baixada e pronta para instalar`;
-      if (info.releaseNotes) {
-        elements.updateNotes.innerHTML = info.releaseNotes.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join("");
-      }
-    });
   }
 
   if (!window.desktopTrier) {

@@ -46,32 +46,3 @@ contextBridge.exposeInMainWorld("desktopTrier", {
   },
 });
 
-contextBridge.exposeInMainWorld("electronAPI", {
-  updateCheck: () => ipcRenderer.invoke("update:check"),
-  updateDownload: () => ipcRenderer.invoke("update:download"),
-  updateInstall: () => ipcRenderer.invoke("update:install"),
-  onUpdateChecking: (callback) => {
-    ipcRenderer.on("update:checking", callback);
-    return () => ipcRenderer.removeListener("update:checking", callback);
-  },
-  onUpdateAvailable: (callback) => {
-    ipcRenderer.on("update:available", callback);
-    return () => ipcRenderer.removeListener("update:available", callback);
-  },
-  onUpdateNotAvailable: (callback) => {
-    ipcRenderer.on("update:not-available", callback);
-    return () => ipcRenderer.removeListener("update:not-available", callback);
-  },
-  onUpdateError: (callback) => {
-    ipcRenderer.on("update:error", callback);
-    return () => ipcRenderer.removeListener("update:error", callback);
-  },
-  onUpdateProgress: (callback) => {
-    ipcRenderer.on("update:progress", callback);
-    return () => ipcRenderer.removeListener("update:progress", callback);
-  },
-  onUpdateDownloaded: (callback) => {
-    ipcRenderer.on("update:downloaded", callback);
-    return () => ipcRenderer.removeListener("update:downloaded", callback);
-  },
-});
