@@ -20,10 +20,10 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            platform: mac
+            platform: macos
             folder: Macos
           - os: windows-latest
-            platform: win
+            platform: windows
             folder: windows
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -61,7 +61,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           DEBUG: 'electron-builder,builder-util-runtime'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:installers:publish
+        run: node scripts/build-installers.cjs ${{ matrix.platform }} --publish
 
       - name: Verify release artifacts
         if: success()
