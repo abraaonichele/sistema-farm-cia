@@ -36,8 +36,13 @@ async function buildInstaller(platform) {
   fs.rmSync(stagingDir, { recursive: true, force: true });
   fs.mkdirSync(stagingDir, { recursive: true });
 
+  console.log(`[${platform}] Iniciando build...`);
+  console.log(`[${platform}] stagingDir: ${stagingDir}`);
+  console.log(`[${platform}] outputDir: ${outputDir}`);
+  console.log(`[${platform}] target: ${configuration.target}`);
+
   try {
-    await build({
+    const result = await build({
       targets: configuration.target,
       publish: SHOULD_PUBLISH ? "always" : "never",
       config: {
@@ -46,6 +51,9 @@ async function buildInstaller(platform) {
         },
       },
     });
+    console.log(`[${platform}] Build result:`, result);
+    console.log(`[${platform}] stagingDir contents after build:`, fs.readdirSync(stagingDir));
+
     const installerExtension = platform.startsWith("windows") ? ".exe" : ".dmg";
     for (const entry of fs.readdirSync(stagingDir, { withFileTypes: true })) {
       const ext = path.extname(entry.name).toLowerCase();
@@ -53,9 +61,12 @@ async function buildInstaller(platform) {
         fs.rmSync(path.join(stagingDir, entry.name), { recursive: true, force: true });
       }
     }
+    console.log(`[${platform}] stagingDir contents after filter:`, fs.readdirSync(stagingDir));
+
     fs.rmSync(outputDir, { recursive: true, force: true });
     fs.renameSync(stagingDir, outputDir);
-    console.log(`Instalador ${platform} atualizado em ${outputDir}`);
+    console.log(`[${platform}] Instalador atualizado em ${outputDir}`);
+    console.log(`[${platform}] outputDir contents:`, fs.readdirSync(outputDir));
   } finally {
     fs.rmSync(stagingDir, { recursive: true, force: true });
   }
