@@ -25,19 +25,26 @@ jobs:
           - os: windows-latest
             platform: win
             folder: windows
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Debug - Check GH_TOKEN
+      - name: Debug - Validate GH_TOKEN
         run: |
+          echo "=== GH_TOKEN Validation ==="
+          if [ -z "$GH_TOKEN" ]; then
+            echo "❌ GH_TOKEN is EMPTY or not set!"
+            exit 1
+          fi
           echo "GH_TOKEN length: ${#GH_TOKEN}"
-          echo "GH_TOKEN starts with: ${GH_TOKEN:0:4}..."
-          echo "Repository: ${{ github.repository }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
+          echo "GH_TOKEN prefix: ${GH_TOKEN:0:4}..."
+          # Test token with GitHub API
+          echo "Testing token with GitHub API..."
+          curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/user | jq -r '.login // "FAILED"'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,7 +57,6 @@ jobs:
 
       - name: Build and publish ${{ matrix.platform }}
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           DEBUG: 'electron-builder,builder-util-runtime'
         run: npm run build:installers:publish
@@ -64,9 +70,7 @@ jobs:
           find instaladores/${{ matrix.folder }}/ -name "*.yml" -o -name "*.yaml" | head -20
 
       - name: Verify release on GitHub
-        if: success() && github.event_name != 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: success() && matrix.platform == 'mac'
         run: |
           echo "=== Checking GitHub releases ==="
           gh release list --repo ${{ github.repository }} --limit 5
