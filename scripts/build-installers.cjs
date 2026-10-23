@@ -57,14 +57,26 @@ async function buildInstaller(platform) {
     const installerExtension = platform.startsWith("windows") ? ".exe" : ".dmg";
     for (const entry of fs.readdirSync(stagingDir, { withFileTypes: true })) {
       const ext = path.extname(entry.name).toLowerCase();
-      if (!entry.isFile() || (ext !== installerExtension && ext !== ".yml")) {
-        fs.rmSync(path.join(stagingDir, entry.name), { recursive: true, force: true });
+      const fullPath = path.join(stagingDir, entry.name);
+      const shouldKeep = entry.isFile() && (ext === installerExtension || ext === ".yml");
+      if (!shouldKeep) {
+        fs.rmSync(fullPath, { recursive: true, force: true });
       }
     }
     console.log(`[${platform}] stagingDir contents after filter:`, fs.readdirSync(stagingDir));
 
     fs.rmSync(outputDir, { recursive: true, force: true });
-    fs.renameSync(stagingDir, outputDir);
+    // Windows: renameSync pode falhar se houver locks; usa copy+remove como fallback
+    try {
+      fs.renameSync(stagingDir, outputDir);
+    } catch (e) {
+      if (e.code === 'EPERM' || e.code === 'ENOTEMPTY') {
+        fs.cpSync(stagingDir, outputDir, { recursive: true });
+        fs.rmSync(stagingDir, { recursive: true, force: true });
+      } else {
+        throw e;
+      }
+    }
     console.log(`[${platform}] Instalador atualizado em ${outputDir}`);
     console.log(`[${platform}] outputDir contents:`, fs.readdirSync(outputDir));
   } finally {
