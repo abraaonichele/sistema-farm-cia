@@ -64,6 +64,7 @@ jobs:
 
       - name: Verify release artifacts
         if: success()
+        shell: bash
         run: |
           echo "=== Build completed for ${{ matrix.platform }} ==="
           ls -la instaladores/${{ matrix.folder }}/
@@ -72,6 +73,7 @@ jobs:
 
       - name: Verify release on GitHub
         if: success() && matrix.platform == 'mac'
+        shell: bash
         run: |
           echo "=== Checking GitHub releases ==="
           gh release list --repo ${{ github.repository }} --limit 5
