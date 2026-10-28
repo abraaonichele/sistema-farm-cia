@@ -648,6 +648,8 @@
   const elements = {
     patientsTable: document.getElementById("patients-table"),
     activityList: document.getElementById("activity-list"),
+    pendingOrdersList: document.getElementById("pending-orders-list"),
+    goToOrders: document.getElementById("go-to-orders"),
     monthlyApplications: document.getElementById("monthly-applications"),
     totalPatients: document.getElementById("total-patients"),
     nextAction: document.getElementById("next-action"),
@@ -2240,6 +2242,18 @@
     elements.monthlyApplications.textContent = getCurrentMonthCount();
     elements.totalPatients.textContent = state.patients.length;
     elements.nextAction.textContent = state.applications.length;
+    if (elements.pendingOrdersList) {
+      const pendingOrders = state.purchaseOrders
+        .filter((order) => order.situation !== "picked-up")
+        .slice()
+        .sort((left, right) => String(right.purchaseDate || right.createdAt || "").localeCompare(String(left.purchaseDate || left.createdAt || "")));
+      elements.pendingOrdersList.innerHTML = pendingOrders.length ? pendingOrders.slice(0, 8).map((order) => `
+        <article class="pending-order-item">
+          <div><strong>${escapeHtml(order.customerName)}</strong><span>${escapeHtml(order.product)} • ${escapeHtml(order.quantity)} un.</span></div>
+          <small>${formatPurchasePhone(order.phone)}${order.purchaseDate ? ` • Compra em ${formatPurchaseDate(order.purchaseDate)}` : ""}</small>
+        </article>
+      `).join("") : `<div class="dashboard-empty">Nenhuma encomenda pendente de retirada.</div>`;
+    }
     updateSidebarState();
     updateSearchSummary();
   }
@@ -9319,6 +9333,11 @@
 
   elements.openPurchases.addEventListener("click", () => {
     openPurchasesModal();
+  });
+
+  elements.goToOrders?.addEventListener("click", () => {
+    openPurchasesModal();
+    setPurchasesTab("orders");
   });
 
   elements.openPharmacyApplications.addEventListener("click", () => {
