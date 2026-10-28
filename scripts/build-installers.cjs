@@ -19,7 +19,7 @@ const configurations = {
   },
   macos: {
     folder: "Macos",
-    target: Platform.MAC.createTarget("dmg", Arch.universal),
+    target: Platform.MAC.createTarget(["dmg", "zip"], Arch.universal),
   },
 };
 
@@ -48,11 +48,11 @@ async function buildInstaller(platform) {
       },
     });
 
-    const installerExtension = platform.startsWith("windows") ? ".exe" : ".dmg";
+    const installerExtensions = platform.startsWith("windows") ? [".exe"] : [".dmg", ".zip"];
     for (const entry of fs.readdirSync(stagingDir, { withFileTypes: true })) {
       const ext = path.extname(entry.name).toLowerCase();
       const fullPath = path.join(stagingDir, entry.name);
-      const shouldKeep = entry.isFile() && (ext === installerExtension || ext === ".yml");
+      const shouldKeep = entry.isFile() && (installerExtensions.includes(ext) || ext === ".yml");
       if (!shouldKeep) {
         fs.rmSync(fullPath, { recursive: true, force: true });
       }
