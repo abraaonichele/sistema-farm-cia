@@ -869,6 +869,14 @@
     debtClientsList: document.getElementById("debt-clients-list"),
     debtClientSearch: document.getElementById("debt-client-search"),
     debtsTotal: document.getElementById("debts-total"),
+    updateModal: document.getElementById("update-modal"),
+    updateModalTitle: document.getElementById("update-modal-title"),
+    updateModalMessage: document.getElementById("update-modal-message"),
+    updateProgressBar: document.getElementById("update-progress-bar"),
+    updateProgressLabel: document.getElementById("update-progress-label"),
+    updateModalClose: document.getElementById("update-modal-close"),
+    updateModalDismiss: document.getElementById("update-modal-dismiss"),
+    updateModalInstall: document.getElementById("update-modal-install"),
     debtDetailModal: document.getElementById("debt-detail-modal"),
     closeDebtDetail: document.getElementById("close-debt-detail"),
     debtDetailTitle: document.getElementById("debt-detail-title"),
@@ -9193,8 +9201,14 @@
       showToast("A verificação automática está disponível apenas no aplicativo instalado.");
       return;
     }
+    openModal(elements.updateModal);
     elements.updateInstall.disabled = true;
     elements.updateInstall.textContent = "Verificando...";
+    if (elements.updateModalTitle) elements.updateModalTitle.textContent = "Verificando atualizações";
+    if (elements.updateModalMessage) elements.updateModalMessage.textContent = "Aguarde enquanto verificamos uma nova versão.";
+    if (elements.updateProgressBar) elements.updateProgressBar.style.width = "0%";
+    if (elements.updateProgressLabel) elements.updateProgressLabel.textContent = "0%";
+    elements.updateModalInstall?.classList.add("hidden");
     try {
       const result = await window.desktopUpdater.check();
       if (result?.state === "development") showToast(result.message);
@@ -9207,17 +9221,40 @@
 
   window.desktopUpdater?.onStatus((status) => {
     if (!elements.updateInstall) return;
+    if (elements.updateModalMessage) elements.updateModalMessage.textContent = status.message || "Atualizando...";
     if (status.state === "checking") {
+      openModal(elements.updateModal);
+      if (elements.updateModalTitle) elements.updateModalTitle.textContent = "Verificando atualizações";
       elements.updateInstall.disabled = true;
       elements.updateInstall.textContent = "Verificando...";
     } else if (status.state === "downloading" || status.state === "available") {
+      openModal(elements.updateModal);
+      if (elements.updateModalTitle) elements.updateModalTitle.textContent = "Baixando atualização";
+      const percent = Math.max(0, Math.min(100, Number(status.percent) || 0));
+      if (elements.updateProgressBar) elements.updateProgressBar.style.width = `${percent}%`;
+      if (elements.updateProgressLabel) elements.updateProgressLabel.textContent = `${percent}%`;
       elements.updateInstall.disabled = true;
-      elements.updateInstall.textContent = status.state === "downloading" ? `Baixando ${status.percent || 0}%` : "Baixando...";
+      elements.updateInstall.textContent = status.state === "downloading" ? `Baixando ${percent}%` : "Baixando...";
+    } else if (status.state === "downloaded") {
+      openModal(elements.updateModal);
+      if (elements.updateModalTitle) elements.updateModalTitle.textContent = "Atualização pronta";
+      if (elements.updateProgressBar) elements.updateProgressBar.style.width = "100%";
+      if (elements.updateProgressLabel) elements.updateProgressLabel.textContent = "100%";
+      elements.updateModalInstall?.classList.remove("hidden");
+      elements.updateInstall.disabled = false;
+      elements.updateInstall.textContent = "Verificar atualizações";
     } else {
       elements.updateInstall.disabled = false;
       elements.updateInstall.textContent = "Verificar atualizações";
       if (status.message) showToast(status.message);
     }
+  });
+
+  [elements.updateModalClose, elements.updateModalDismiss].forEach((button) => button?.addEventListener("click", () => closeModal(elements.updateModal)));
+  elements.updateModalInstall?.addEventListener("click", async () => {
+    elements.updateModalInstall.disabled = true;
+    elements.updateModalInstall.textContent = "Instalando...";
+    await window.desktopUpdater?.install();
   });
 
   elements.openAccount.addEventListener("click", () => {

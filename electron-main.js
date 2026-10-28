@@ -41,7 +41,15 @@ function registerUpdateHandlers() {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on("checking-for-update", () => broadcastUpdateStatus({ state: "checking", message: "Verificando atualizações..." }));
-  autoUpdater.on("update-available", (info) => broadcastUpdateStatus({ state: "available", version: info.version, message: `Atualização ${info.version} encontrada. Baixando...` }));
+  autoUpdater.on("update-available", async (info) => {
+    broadcastUpdateStatus({ state: "available", version: info.version, percent: 0, message: `Atualização ${info.version} encontrada. Iniciando download...` });
+    try {
+      await autoUpdater.downloadUpdate();
+    } catch (error) {
+      updateCheckInProgress = false;
+      broadcastUpdateStatus({ state: "error", message: error?.message || "Não foi possível baixar a atualização." });
+    }
+  });
   autoUpdater.on("update-not-available", (info) => {
     updateCheckInProgress = false;
     broadcastUpdateStatus({ state: "up-to-date", version: info.version, message: "O aplicativo já está atualizado." });
@@ -50,8 +58,6 @@ function registerUpdateHandlers() {
   autoUpdater.on("update-downloaded", async (info) => {
     updateCheckInProgress = false;
     broadcastUpdateStatus({ state: "downloaded", version: info.version, message: "Atualização baixada. Reinicie para instalar." });
-    const result = await dialog.showMessageBox({ type: "info", buttons: ["Reiniciar agora", "Depois"], defaultId: 0, cancelId: 1, title: "Atualização pronta", message: `A versão ${info.version} foi baixada. Deseja reiniciar e instalar agora?` });
-    if (result.response === 0) autoUpdater.quitAndInstall();
   });
   autoUpdater.on("error", (error) => {
     updateCheckInProgress = false;
@@ -70,6 +76,11 @@ function registerUpdateHandlers() {
       broadcastUpdateStatus({ state: "error", message: error?.message || "Não foi possível verificar atualizações." });
       return { state: "error", message: error?.message || "Não foi possível verificar atualizações." };
     }
+  });
+  ipcMain.handle("updates:install", () => {
+    if (!app.isPackaged) return { state: "development" };
+    autoUpdater.quitAndInstall();
+    return { state: "installing" };
   });
 }
 
