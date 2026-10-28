@@ -38,18 +38,13 @@ function broadcastUpdateStatus(payload) {
 }
 
 function registerUpdateHandlers() {
-  autoUpdater.autoDownload = false;
+  // Deixe o electron-updater iniciar o download após o evento
+  // `update-available`. O download manual pode ficar preso em algumas
+  // versões do Windows e do macOS sem emitir progresso.
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on("checking-for-update", () => broadcastUpdateStatus({ state: "checking", message: "Verificando atualizações..." }));
-  autoUpdater.on("update-available", async (info) => {
-    broadcastUpdateStatus({ state: "available", version: info.version, percent: 0, message: `Atualização ${info.version} encontrada. Iniciando download...` });
-    try {
-      await autoUpdater.downloadUpdate();
-    } catch (error) {
-      updateCheckInProgress = false;
-      broadcastUpdateStatus({ state: "error", message: error?.message || "Não foi possível baixar a atualização." });
-    }
-  });
+  autoUpdater.on("update-available", (info) => broadcastUpdateStatus({ state: "available", version: info.version, percent: 0, message: `Atualização ${info.version} encontrada. Iniciando download...` }));
   autoUpdater.on("update-not-available", (info) => {
     updateCheckInProgress = false;
     broadcastUpdateStatus({ state: "up-to-date", version: info.version, message: "O aplicativo já está atualizado." });
