@@ -4252,7 +4252,7 @@
         </div>
         <span class="purchase-item-detail">Estoque zerado em ${formatPurchaseDate(item.outOfStockDate)}${archived && item.archivedAt ? ` • Arquivado em ${formatPurchaseDateTime(item.archivedAt)}` : ""}</span>
         <div class="purchase-item-actions">
-          ${archived ? `<span class="purchase-status-badge condition-paid">Arquivado</span>` : `<select class="purchase-status-select ${item.status || "shortage-distributor"}" data-purchase-action="shortage-status" data-purchase-id="${item.id}" aria-label="Status da compra"><option value="shortage-distributor"${item.status === "shortage-distributor" || !item.status ? " selected" : ""}>Em falta na distribuidora</option><option value="shortage-cart"${item.status === "shortage-cart" ? " selected" : ""}>No carrinho</option><option value="shortage-ordered"${item.status === "shortage-ordered" ? " selected" : ""}>Pedido realizado</option></select><button class="purchase-complete" type="button" data-purchase-action="archive-shortage" data-purchase-id="${item.id}" aria-label="Arquivar ${escapeHtml(item.product)}" title="Arquivar compra">✓</button><button class="purchase-edit" type="button" data-purchase-action="edit-shortage" data-purchase-id="${item.id}" aria-label="Editar ${escapeHtml(item.product)}" title="Editar item">✎</button>`}
+          ${archived ? `<span class="purchase-status-badge condition-paid">Arquivado</span>` : `<select class="purchase-status-select ${item.status || ""}" data-purchase-action="shortage-status" data-purchase-id="${item.id}" aria-label="Status da compra"><option value=""${!item.status ? " selected" : ""}>-----</option><option value="shortage-distributor"${item.status === "shortage-distributor" ? " selected" : ""}>Em falta na distribuidora</option><option value="shortage-cart"${item.status === "shortage-cart" ? " selected" : ""}>No carrinho</option><option value="shortage-ordered"${item.status === "shortage-ordered" ? " selected" : ""}>Pedido realizado</option></select><button class="purchase-complete" type="button" data-purchase-action="archive-shortage" data-purchase-id="${item.id}" aria-label="Arquivar ${escapeHtml(item.product)}" title="Arquivar compra">✓</button><button class="purchase-edit" type="button" data-purchase-action="edit-shortage" data-purchase-id="${item.id}" aria-label="Editar ${escapeHtml(item.product)}" title="Editar item">✎</button>`}
           <button class="purchase-remove" type="button" data-purchase-action="${archived ? "remove-archived-shortage" : "remove-shortage"}" data-purchase-id="${item.id}" aria-label="Remover ${escapeHtml(item.product)}" title="Remover item">×</button>
         </div>
       </article>
@@ -4441,7 +4441,7 @@
       ean: elements.shortageEan.value.trim(),
       quantity: Number(elements.shortageQuantity.value),
       outOfStockDate: elements.shortageDate.value,
-      status: existing?.status || "shortage-distributor",
+      status: existing?.status || "",
       createdAt: existing?.createdAt || new Date().toISOString(),
       createdBy: existing?.createdBy || getCurrentUser()?.id || "",
     };
