@@ -467,6 +467,42 @@
   margin: 0 auto;
 }
 
+.debts-total-card {
+  width: min(1180px, 100%);
+  margin: 0 auto 16px;
+  padding: 20px 22px;
+  border: 1px solid rgba(178, 59, 42, .16);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fff7f5, #fff);
+  box-shadow: var(--shadow);
+}
+
+.debts-total-card div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.debts-total-card span,
+.debts-total-card small {
+  color: var(--muted);
+}
+
+.debts-total-card span {
+  font-weight: 800;
+}
+
+.debts-total-card strong {
+  color: #b23b2a;
+  font-size: 1.8rem;
+}
+
+.debts-total-card small {
+  display: block;
+  margin-top: 5px;
+}
+
 .debts-client-panel,
 .modal-debt-detail > section,
 .debt-product-search-wrap,

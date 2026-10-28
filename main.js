@@ -868,6 +868,7 @@
     debtClientCpf: document.getElementById("debt-client-cpf"),
     debtClientsList: document.getElementById("debt-clients-list"),
     debtClientSearch: document.getElementById("debt-client-search"),
+    debtsTotal: document.getElementById("debts-total"),
     debtDetailModal: document.getElementById("debt-detail-modal"),
     closeDebtDetail: document.getElementById("close-debt-detail"),
     debtDetailTitle: document.getElementById("debt-detail-title"),
@@ -3730,6 +3731,10 @@
       || (digits && `${client.phone}${client.cpf}`.replace(/\D/g, "").includes(digits)));
     const countElement = document.getElementById("debt-clients-count");
     if (countElement) countElement.textContent = `${clients.length} ${clients.length === 1 ? "cliente" : "clientes"}`;
+    if (elements.debtsTotal) {
+      const total = state.debts.reduce((sum, client) => sum + Math.max(0, getDebtClientTotal(client)), 0);
+      elements.debtsTotal.textContent = formatCurrency(total);
+    }
     elements.debtClientsList.innerHTML = clients.length ? clients.map((client) => `
       <button class="debt-client-card" type="button" data-debt-client-id="${escapeHtml(client.id)}"><span><strong>${escapeHtml(client.customerName)}</strong><small>${escapeHtml([client.phone, client.cpf ? `CPF ${client.cpf}` : ""].filter(Boolean).join(" • ") || "Telefone e CPF não informados")}</small></span><b>${formatCurrency(Math.max(0, getDebtClientTotal(client)))}</b></button>
     `).join("") : `<div class="debt-empty">${query ? "Nenhum cliente encontrado." : "Nenhum cliente com dívida cadastrado."}</div>`;
