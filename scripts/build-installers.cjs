@@ -58,6 +58,22 @@ async function buildInstaller(platform) {
       }
     }
 
+    // O electron-builder pode gerar nomes diferentes para os artefatos do
+    // macOS e para os nomes registrados no latest-mac.yml. O updater usa o
+    // YAML como fonte da URL, então os arquivos precisam ter exatamente os
+    // mesmos nomes publicados.
+    if (platform === "macos") {
+      const updateInfoPath = path.join(stagingDir, "latest-mac.yml");
+      const updateInfo = fs.readFileSync(updateInfoPath, "utf8");
+      const expectedNames = [...updateInfo.matchAll(/^\s*-?\s*url:\s*(\S+)$/gm)].map((match) => match[1]);
+      for (const expectedName of expectedNames) {
+        const expectedPath = path.join(stagingDir, expectedName);
+        if (fs.existsSync(expectedPath)) continue;
+        const sourceEntry = fs.readdirSync(stagingDir, { withFileTypes: true }).find((entry) => entry.isFile() && path.extname(entry.name).toLowerCase() === path.extname(expectedName).toLowerCase());
+        if (sourceEntry) fs.renameSync(path.join(stagingDir, sourceEntry.name), expectedPath);
+      }
+    }
+
     fs.rmSync(outputDir, { recursive: true, force: true });
     // Windows: renameSync pode falhar se houver locks; usa copy+remove como fallback
     try {
