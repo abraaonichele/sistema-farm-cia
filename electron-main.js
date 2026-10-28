@@ -11,6 +11,7 @@ const {
   TRIER_DEFAULT_BASE_URL,
 } = require("./trier-products.cjs");
 const { sendTrierEcommerceSale } = require("./trier-sales.cjs");
+const { autoUpdater } = require("electron-updater");
 
 let trierProductsCache = null;
 let trierProductsCacheAt = 0;
@@ -28,6 +29,49 @@ const TRIER_BROWSER_SERVICE_PORT = 43187;
 const LEGACY_LOCAL_TRIER_BASE_URL = "http://localhost:4647/sgfpod1";
 const PREVIOUS_UNREACHABLE_TRIER_BASE_URL = "http://192.168.1.25:4647/sgfpod1";
 let trierBrowserServer = null;
+let updateCheckInProgress = false;
+
+function broadcastUpdateStatus(payload) {
+  const window = BrowserWindow.getAllWindows()[0];
+  if (!window || window.isDestroyed()) return;
+  window.webContents.send("updates:status", payload);
+}
+
+function registerUpdateHandlers() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("checking-for-update", () => broadcastUpdateStatus({ state: "checking", message: "Verificando atualizações..." }));
+  autoUpdater.on("update-available", (info) => broadcastUpdateStatus({ state: "available", version: info.version, message: `Atualização ${info.version} encontrada. Baixando...` }));
+  autoUpdater.on("update-not-available", (info) => {
+    updateCheckInProgress = false;
+    broadcastUpdateStatus({ state: "up-to-date", version: info.version, message: "O aplicativo já está atualizado." });
+  });
+  autoUpdater.on("download-progress", (progress) => broadcastUpdateStatus({ state: "downloading", percent: Math.round(progress.percent), message: `Baixando atualização: ${Math.round(progress.percent)}%` }));
+  autoUpdater.on("update-downloaded", async (info) => {
+    updateCheckInProgress = false;
+    broadcastUpdateStatus({ state: "downloaded", version: info.version, message: "Atualização baixada. Reinicie para instalar." });
+    const result = await dialog.showMessageBox({ type: "info", buttons: ["Reiniciar agora", "Depois"], defaultId: 0, cancelId: 1, title: "Atualização pronta", message: `A versão ${info.version} foi baixada. Deseja reiniciar e instalar agora?` });
+    if (result.response === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.on("error", (error) => {
+    updateCheckInProgress = false;
+    console.error("Erro ao atualizar o aplicativo:", error);
+    broadcastUpdateStatus({ state: "error", message: error?.message || "Não foi possível verificar atualizações." });
+  });
+  ipcMain.handle("updates:check", async () => {
+    if (!app.isPackaged) return { state: "development", message: "Atualizações ficam disponíveis somente na versão instalada." };
+    if (updateCheckInProgress) return { state: "checking", message: "A verificação já está em andamento." };
+    updateCheckInProgress = true;
+    try {
+      await autoUpdater.checkForUpdates();
+      return { state: "checking", message: "Verificando atualizações..." };
+    } catch (error) {
+      updateCheckInProgress = false;
+      broadcastUpdateStatus({ state: "error", message: error?.message || "Não foi possível verificar atualizações." });
+      return { state: "error", message: error?.message || "Não foi possível verificar atualizações." };
+    }
+  });
+}
 
 function getTrierConfigPath() {
   return path.join(app.getPath("userData"), "trier-integration.json");
@@ -506,6 +550,7 @@ if (process.argv.includes(TRIER_BROWSER_SERVICE_ARGUMENT)) {
   }
 } else {
   app.whenReady().then(() => {
+    registerUpdateHandlers();
     registerOfferPrintingHandlers();
     registerTrierHandlers();
     createWindow();

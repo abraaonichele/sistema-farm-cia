@@ -1,0 +1,74 @@
+name: Publicar instaladores
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Gerar instalador Windows
+        run: npm run build:win
+      - name: Publicar artefato Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: instalador-windows
+          path: instaladores/windows/*
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Gerar instalador macOS
+        run: npm run build:mac
+      - name: Publicar artefato macOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: instalador-macos
+          path: instaladores/Macos/*
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar instalador Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: instalador-windows
+          path: release-assets
+      - name: Baixar instalador macOS
+        uses: actions/download-artifact@v4
+        with:
+          name: instalador-macos
+          path: release-assets
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**
+          generate_release_notes: true
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

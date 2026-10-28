@@ -40,6 +40,8 @@
     pricingTabs: "pricingTabs",
     purchaseShortages: "purchaseShortages",
     purchaseOrders: "purchaseOrders",
+    pharmacyApplications: "pharmacyApplications",
+    debts: "debts",
     cashbackClients: "cashbackClients",
   };
 
@@ -358,27 +360,38 @@
         ? await window.desktopMedicineData.load()
         : null;
       const raiaMedicineLibrary = payload ? JSON.parse(payload.raia) : window.RAIA_MEDICINE_LIBRARY || [];
+      await yieldToRenderer();
       const xlsxMedicineLibrary = payload ? JSON.parse(payload.xlsx) : window.XLSX_MEDICINE_LIBRARY || [];
+      await yieldToRenderer();
       const eanMedicineAliases = payload ? JSON.parse(payload.aliases) : window.EAN_MEDICINE_ALIASES || {};
-      const raiaSourceSlugs = new Set(raiaMedicineLibrary.map((medicine) => (
-        String(medicine.leafletPath || "").split("/").at(-1).replace(/\.pdf$/i, "").toLocaleLowerCase("pt-BR")
-      )));
+      await yieldToRenderer();
+      const raiaSourceSlugs = new Set();
+      for (let index = 0; index < raiaMedicineLibrary.length; index += 1) {
+        const medicine = raiaMedicineLibrary[index];
+        raiaSourceSlugs.add(String(medicine.leafletPath || "").split("/").at(-1).replace(/\.pdf$/i, "").toLocaleLowerCase("pt-BR"));
+        if (index > 0 && index % 500 === 0) await yieldToRenderer();
+      }
       const canonicalBySlug = new Map();
       const laboratoryVariants = [];
 
-      for (const medicine of raiaMedicineLibrary) {
+      for (let index = 0; index < raiaMedicineLibrary.length; index += 1) {
+        const medicine = raiaMedicineLibrary[index];
         const baseSlug = laboratoryBaseSlug(medicine, raiaSourceSlugs);
         if (baseSlug) laboratoryVariants.push({ medicine, baseSlug });
         else canonicalBySlug.set(String(medicine.leafletPath || "").split("/").at(-1).replace(/\.pdf$/i, "").toLocaleLowerCase("pt-BR"), {
           ...medicine,
           presentations: [...(medicine.presentations || [])],
         });
+        if (index > 0 && index % 200 === 0) await yieldToRenderer();
       }
-      for (const { medicine, baseSlug } of laboratoryVariants) {
+      for (let index = 0; index < laboratoryVariants.length; index += 1) {
+        const { medicine, baseSlug } = laboratoryVariants[index];
         const baseMedicine = canonicalBySlug.get(baseSlug);
-        if (!baseMedicine) continue;
-        const presentations = medicine.presentations || (medicine.strengths || []).map((strength) => ({ strength, form: "", label: strength }));
-        baseMedicine.presentations.push(...presentations.map((presentation) => ({ ...presentation, sourceMedicine: medicine })));
+        if (baseMedicine) {
+          const presentations = medicine.presentations || (medicine.strengths || []).map((strength) => ({ strength, form: "", label: strength }));
+          baseMedicine.presentations.push(...presentations.map((presentation) => ({ ...presentation, sourceMedicine: medicine })));
+        }
+        if (index > 0 && index % 200 === 0) await yieldToRenderer();
       }
 
       const defaultMedicineEans = new Set(DEFAULT_MEDICINE_LIBRARY.map((medicine) => medicine.ean));
@@ -391,31 +404,64 @@
         )),
         ...xlsxMedicineLibrary,
       ];
-      MEDICINE_LIBRARY = medicineSources.flatMap(createMedicineVariants);
+      MEDICINE_LIBRARY = [];
+      for (let index = 0; index < medicineSources.length; index += 1) {
+        MEDICINE_LIBRARY.push(...createMedicineVariants(medicineSources[index]));
+        if (index > 0 && index % 20 === 0) await yieldToRenderer();
+      }
       const medicineVariantsBySlug = new Map();
       const medicineSourcesBySlug = new Map();
-      for (const medicine of medicineSources) {
+      for (let index = 0; index < medicineSources.length; index += 1) {
+        const medicine = medicineSources[index];
         const medicineSlug = String(medicine.leafletPath || "").split("/").at(-1).replace(/\.pdf$/i, "").toLocaleLowerCase("pt-BR");
         medicineSourcesBySlug.set(medicineSlug, medicine);
+        if (index > 0 && index % 500 === 0) await yieldToRenderer();
       }
-      for (const medicine of MEDICINE_LIBRARY) {
+      const medicineMetadataByToken = new Map();
+      const addMedicineMetadata = (medicine) => {
+        const normalizedName = normalize(medicine.name);
+        const metadata = {
+          medicine,
+          normalizedName,
+          strengths: [...normalizedName.matchAll(/\b\d+(?:[,.]\d+)?\s*(?:mcg|mg|g)(?:\s*\/\s*(?:ml|g))?(?![a-z])/gi)]
+            .map((match) => normalizedStrengthKey(match[0])),
+        };
+        const tokens = new Set(normalizedName.split(/\s+/).filter((token) => token.length >= 3));
+        for (const token of tokens) {
+          const bucket = medicineMetadataByToken.get(token) || [];
+          bucket.push(metadata);
+          medicineMetadataByToken.set(token, bucket);
+        }
+      };
+      for (let index = 0; index < MEDICINE_LIBRARY.length; index += 1) {
+        const medicine = MEDICINE_LIBRARY[index];
         const medicineSlug = String(medicine.leafletPath || "").split("/").at(-1).replace(/\.pdf$/i, "").toLocaleLowerCase("pt-BR");
         const variants = medicineVariantsBySlug.get(medicineSlug) || [];
         variants.push(medicine);
         medicineVariantsBySlug.set(medicineSlug, variants);
+        addMedicineMetadata(medicine);
+        if (index > 0 && index % 300 === 0) await yieldToRenderer();
       }
 
       const groupedEanAliases = new Map();
-      for (const alias of Object.values(eanMedicineAliases)) {
+      const eanAliases = Object.values(eanMedicineAliases);
+      for (let index = 0; index < eanAliases.length; index += 1) {
+        const alias = eanAliases[index];
         const presentationKey = `${alias.candidateSlug}|${normalize(alias.strength).replace(/\s/g, "")}|${normalize(alias.form)}`;
         const aliases = groupedEanAliases.get(presentationKey) || [];
         aliases.push(alias);
         groupedEanAliases.set(presentationKey, aliases);
+        if (index > 0 && index % 500 === 0) await yieldToRenderer();
       }
-      for (const aliases of groupedEanAliases.values()) {
+      const aliasGroups = [...groupedEanAliases.values()];
+      for (let groupIndex = 0; groupIndex < aliasGroups.length; groupIndex += 1) {
+        const aliases = aliasGroups[groupIndex];
         const alias = aliases[0];
         const variants = medicineVariantsBySlug.get(alias.candidateSlug) || [];
-        if (!variants.length) continue;
+        if (!variants.length) {
+          if (groupIndex > 0 && groupIndex % 100 === 0) await yieldToRenderer();
+          continue;
+        }
         const wantedStrength = normalizedStrengthKey(alias.strength);
         const wantedForm = normalize(alias.form);
         const matchingVariant = variants.find((medicine) => {
@@ -430,16 +476,19 @@
           const sourceMedicine = medicineSourcesBySlug.get(alias.candidateSlug) || variants[0];
           const presentationLabel = [String(alias.strength || "").toLocaleLowerCase("pt-BR"), alias.form].filter(Boolean).join(" ");
           const sourceName = normalize(sourceMedicine.name);
-          const compatibleVariant = MEDICINE_LIBRARY.find((medicine) => {
-            if (variants.includes(medicine)) return false;
-            const variantName = normalize(medicine.name);
+          const variantSet = new Set(variants);
+          const compatibleCandidates = new Set();
+          for (const token of sourceName.split(/\s+/).filter((item) => item.length >= 3)) {
+            for (const metadata of medicineMetadataByToken.get(token) || []) compatibleCandidates.add(metadata);
+          }
+          const compatibleVariant = [...compatibleCandidates].find((metadata) => {
+            if (variantSet.has(metadata.medicine)) return false;
+            const variantName = metadata.normalizedName;
             const sameMedicine = variantName.includes(sourceName) || sourceName.includes(variantName.split(/\d/)[0].trim());
             if (!sameMedicine) return false;
-            const variantStrengths = [...variantName.matchAll(/\b\d+(?:[,.]\d+)?\s*(?:mcg|mg|g)(?:\s*\/\s*(?:ml|g))?(?![a-z])/gi)]
-              .map((match) => normalizedStrengthKey(match[0]));
-            return (!wantedStrength || variantStrengths.includes(wantedStrength))
+            return (!wantedStrength || metadata.strengths.includes(wantedStrength))
               && (!wantedForm || medicineFormsAreCompatible(variantName, wantedForm));
-          });
+          })?.medicine;
           targetMedicine = {
             ...(compatibleVariant || sourceMedicine),
             name: `${sourceMedicine.name} ${presentationLabel}`.trim(),
@@ -452,6 +501,7 @@
           };
           MEDICINE_LIBRARY.push(targetMedicine);
           variants.push(targetMedicine);
+          addMedicineMetadata(targetMedicine);
         }
         targetMedicine ||= variants[0];
         const commercialAliases = aliases.flatMap((item) => [
@@ -460,15 +510,21 @@
           item.activeIngredient,
         ]).filter(Boolean).join(" ");
         targetMedicine.aliases = `${targetMedicine.aliases || ""} ${commercialAliases}`.trim();
+        if (groupIndex > 0 && groupIndex % 100 === 0) await yieldToRenderer();
       }
 
-      MEDICINE_SEARCH_INDEX = MEDICINE_LIBRARY.map((medicine, index) => ({
-        medicine,
-        index,
-        name: normalize(medicine.name),
-        ean: normalize(medicine.ean),
-        searchText: normalize(`${medicine.name} ${medicine.ean || ""} ${medicine.aliases || ""}`),
-      }));
+      MEDICINE_SEARCH_INDEX = [];
+      for (let index = 0; index < MEDICINE_LIBRARY.length; index += 1) {
+        const medicine = MEDICINE_LIBRARY[index];
+        MEDICINE_SEARCH_INDEX.push({
+          medicine,
+          index,
+          name: normalize(medicine.name),
+          ean: normalize(medicine.ean),
+          searchText: normalize(`${medicine.name} ${medicine.ean || ""} ${medicine.aliases || ""}`),
+        });
+        if (index > 0 && index % 300 === 0) await yieldToRenderer();
+      }
     })().catch((error) => {
       medicineDataLoadPromise = null;
       throw error;
@@ -511,6 +567,13 @@
     purchaseShortages: [],
     purchaseOrders: [],
     completedPurchaseOrders: [],
+    pharmacyApplications: [],
+    editingPharmacyApplicationId: "",
+    debts: [],
+    currentDebtClientId: "",
+    debtProductsLoading: false,
+    debtProductChooserMode: false,
+    debtPendingRemoveItemId: "",
     editingPurchaseShortageId: "",
     editingPurchaseOrderId: "",
     cashbackClients: [],
@@ -565,12 +628,17 @@
     onlineBackendReady: false,
     onlineBackendChecked: false,
     trierProducts: [],
+    trierProductSearchIndex: [],
+    trierProductsByExactKey: new Map(),
+    trierProductsByExactName: new Map(),
     trierProductsSyncedAt: "",
     trierSyncError: "",
     selectedQuoteProduct: null,
     quoteProductChooserMatches: [],
+    quoteProductChooserHasMore: false,
     selectedQuoteChooserIndex: -1,
     whatsappQuoteItems: [],
+    whatsappQuoteCustomMessage: null,
     quotePdvOrderId: "",
     quotePdvSale: null,
     submittingQuoteToPdv: false,
@@ -604,6 +672,8 @@
     openUsers: document.getElementById("open-users"),
     openDoctors: document.getElementById("open-doctors"),
     openPurchases: document.getElementById("open-purchases"),
+    openPharmacyApplications: document.getElementById("open-pharmacy-applications"),
+    openDebts: document.getElementById("open-debts"),
     openCashback: document.getElementById("open-cashback"),
     openPricing: document.getElementById("open-pricing"),
     openOfferSheet: document.getElementById("open-offer-sheet"),
@@ -772,6 +842,50 @@
     ordersList: document.getElementById("orders-list"),
     completedOrdersCount: document.getElementById("completed-orders-count"),
     completedOrdersList: document.getElementById("completed-orders-list"),
+    pharmacyApplicationsModal: document.getElementById("pharmacy-applications-modal"),
+    closePharmacyApplications: document.getElementById("close-pharmacy-applications"),
+    refreshPharmacyApplications: document.getElementById("refresh-pharmacy-applications"),
+    pharmacyApplicationsTabs: Array.from(document.querySelectorAll("[data-pharmacy-applications-tab]")),
+    pharmacyApplicationsPanels: Array.from(document.querySelectorAll("[data-pharmacy-applications-panel]")),
+    pharmacyApplicationsPendingCount: document.getElementById("pharmacy-applications-pending-count"),
+    pharmacyApplicationsPendingList: document.getElementById("pharmacy-applications-pending-list"),
+    pharmacyApplicationsCompletedCount: document.getElementById("pharmacy-applications-completed-count"),
+    pharmacyApplicationsCompletedList: document.getElementById("pharmacy-applications-completed-list"),
+    pharmacyApplicationsSearch: document.getElementById("pharmacy-applications-search"),
+    pharmacyApplicationForm: document.getElementById("pharmacy-application-form"),
+    pharmacyApplicationName: document.getElementById("pharmacy-application-name"),
+    pharmacyApplicationPhone: document.getElementById("pharmacy-application-phone"),
+    pharmacyApplicationMedicine: document.getElementById("pharmacy-application-medicine"),
+    pharmacyApplicationAmpoules: document.getElementById("pharmacy-application-ampoules"),
+    pharmacyApplicationPurchaseDate: document.getElementById("pharmacy-application-purchase-date"),
+    pharmacyApplicationSubmit: document.getElementById("pharmacy-application-submit"),
+    pharmacyApplicationFormTitle: document.getElementById("pharmacy-application-form-title"),
+    debtsModal: document.getElementById("debts-modal"),
+    closeDebts: document.getElementById("close-debts"),
+    debtClientForm: document.getElementById("debt-client-form"),
+    debtClientName: document.getElementById("debt-client-name"),
+    debtClientPhone: document.getElementById("debt-client-phone"),
+    debtClientCpf: document.getElementById("debt-client-cpf"),
+    debtClientsList: document.getElementById("debt-clients-list"),
+    debtClientSearch: document.getElementById("debt-client-search"),
+    debtDetailModal: document.getElementById("debt-detail-modal"),
+    closeDebtDetail: document.getElementById("close-debt-detail"),
+    debtDetailTitle: document.getElementById("debt-detail-title"),
+    debtProductSearch: document.getElementById("debt-product-search"),
+    debtProductResults: document.getElementById("debt-product-results"),
+    debtConfigureTrier: document.getElementById("debt-configure-trier"),
+    debtItemsList: document.getElementById("debt-items-list"),
+    debtTotal: document.getElementById("debt-total"),
+    debtPaymentButton: document.getElementById("debt-payment-button"),
+    debtPaymentsList: document.getElementById("debt-payments-list"),
+    debtPaymentModal: document.getElementById("debt-payment-modal"),
+    closeDebtPayment: document.getElementById("close-debt-payment"),
+    debtPaymentForm: document.getElementById("debt-payment-form"),
+    debtPaymentAmount: document.getElementById("debt-payment-amount"),
+    debtRemoveModal: document.getElementById("debt-remove-modal"),
+    closeDebtRemove: document.getElementById("close-debt-remove"),
+    debtRemoveForm: document.getElementById("debt-remove-form"),
+    debtRemovePassword: document.getElementById("debt-remove-password"),
     cashbackModal: document.getElementById("cashback-modal"),
     closeCashback: document.getElementById("close-cashback"),
     cashbackForm: document.getElementById("cashback-form"),
@@ -823,6 +937,7 @@
     quoteProductChooserDetail: document.getElementById("quote-product-chooser-detail"),
     quoteProductQuantity: document.getElementById("quote-product-quantity"),
     quoteProductPrice: document.getElementById("quote-product-price"),
+    quoteProductDiscount: document.getElementById("quote-product-discount"),
     quoteAddProduct: document.querySelector(".quote-add-product"),
     quoteSelectedProduct: document.getElementById("quote-selected-product"),
     quoteProductsEmpty: document.getElementById("quote-products-empty"),
@@ -833,6 +948,13 @@
     quoteTotal: document.getElementById("quote-total"),
     sendWhatsappQuote: document.getElementById("send-whatsapp-quote"),
     copyWhatsappQuote: document.getElementById("copy-whatsapp-quote"),
+    editWhatsappQuote: document.getElementById("edit-whatsapp-quote"),
+    quoteMessageEditorModal: document.getElementById("quote-message-editor-modal"),
+    closeQuoteMessageEditor: document.getElementById("close-quote-message-editor"),
+    quoteMessageEditorText: document.getElementById("quote-message-editor-text"),
+    resetQuoteMessage: document.getElementById("reset-quote-message"),
+    cancelQuoteMessage: document.getElementById("cancel-quote-message"),
+    saveQuoteMessage: document.getElementById("save-quote-message"),
     sendPdvQuote: document.getElementById("send-pdv-quote"),
     quotePdvStatus: document.getElementById("quote-pdv-status"),
     clearWhatsappQuote: document.getElementById("clear-whatsapp-quote"),
@@ -1227,7 +1349,7 @@
   }
 
   async function initializeFirestoreState() {
-    const [patients, applications, bioRecords, clinicalRecords, doctors, users, pricingProducts, pricingSettings, pricingTabs, purchaseShortages, purchaseOrders, cashbackClients] = await Promise.all([
+    const [patients, applications, bioRecords, clinicalRecords, doctors, users, pricingProducts, pricingSettings, pricingTabs, purchaseShortages, purchaseOrders, cashbackClients, pharmacyApplications, debts] = await Promise.all([
       loadCollection(FIRESTORE_COLLECTIONS.patients),
       loadCollection(FIRESTORE_COLLECTIONS.applications),
       loadCollection(FIRESTORE_COLLECTIONS.bioRecords),
@@ -1240,6 +1362,8 @@
       loadCollection(FIRESTORE_COLLECTIONS.purchaseShortages),
       loadCollection(FIRESTORE_COLLECTIONS.purchaseOrders),
       loadCollection(FIRESTORE_COLLECTIONS.cashbackClients),
+      loadCollection(FIRESTORE_COLLECTIONS.pharmacyApplications),
+      loadCollection(FIRESTORE_COLLECTIONS.debts),
     ]);
 
     state.patients = patients;
@@ -1257,6 +1381,8 @@
     state.purchaseOrders = purchaseOrders.filter((order) => !order.completedAt);
     state.completedPurchaseOrders = purchaseOrders.filter((order) => order.completedAt);
     state.cashbackClients = cashbackClients.map(sanitizeCashbackClient);
+    state.pharmacyApplications = pharmacyApplications.map(sanitizePharmacyApplication);
+    state.debts = debts.map(sanitizeDebtClient);
 
     await seedFirestoreData();
     await ensureSeedUsers();
@@ -1425,6 +1551,12 @@
     };
   }
 
+  function yieldToRenderer() {
+    return new Promise((resolve) => {
+      window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
+    });
+  }
+
   function sanitizePricingSettings(settings) {
     const base = createDefaultPricingSettings();
     const current = settings || {};
@@ -1480,20 +1612,38 @@
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+  const percentFormatters = new Map();
+  const shortDateFormatter = new Intl.DateTimeFormat("pt-BR");
+  const shortDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+  const purchaseDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   function formatCurrency(value) {
     const amount = Number.isFinite(value) ? value : 0;
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(amount);
+    return currencyFormatter.format(amount);
   }
 
   function formatPercent(value, digits = 2) {
     if (!Number.isFinite(value)) return "-";
-    return new Intl.NumberFormat("pt-BR", {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }).format(value) + "%";
+    if (!percentFormatters.has(digits)) {
+      percentFormatters.set(digits, new Intl.NumberFormat("pt-BR", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }));
+    }
+    return percentFormatters.get(digits).format(value) + "%";
   }
 
   function formatDecimalInput(value, digits = 2) {
@@ -2027,17 +2177,14 @@
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
-    return new Intl.DateTimeFormat("pt-BR").format(date);
+    return shortDateFormatter.format(date);
   }
 
   function formatDateTime(value) {
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(date);
+    return shortDateTimeFormatter.format(date);
   }
 
   function getCurrentMonthCount() {
@@ -2051,12 +2198,15 @@
     }).length;
   }
 
-  function getLastApplicationForPatient(patientId) {
-    const applications = state.applications
-      .filter((application) => application.patientId === patientId)
-      .sort((left, right) => new Date(right.dateTime) - new Date(left.dateTime));
-
-    return applications[0] || null;
+  function getLastApplicationsByPatient() {
+    const latestByPatient = new Map();
+    for (const application of state.applications) {
+      const current = latestByPatient.get(application.patientId);
+      if (!current || String(application.dateTime || "") > String(current.dateTime || "")) {
+        latestByPatient.set(application.patientId, application);
+      }
+    }
+    return latestByPatient;
   }
 
   function filterPatients() {
@@ -2097,9 +2247,11 @@
       return;
     }
 
+    const latestApplications = getLastApplicationsByPatient();
+
     elements.patientsTable.innerHTML = patients
       .map((patient) => {
-        const lastApplication = getLastApplicationForPatient(patient.id);
+        const lastApplication = latestApplications.get(patient.id) || null;
         return `
           <tr>
             <td>
@@ -2171,7 +2323,8 @@
         startDate.setDate(startDate.getDate() - 2);
         return activityDate >= startDate && activityDate <= new Date();
       })
-      .sort((left, right) => new Date(right.dateTime) - new Date(left.dateTime));
+      .sort((left, right) => String(right.dateTime || "").localeCompare(String(left.dateTime || "")))
+      .slice(0, 100);
 
     if (!activities.length) {
       elements.activityList.innerHTML = `
@@ -2180,9 +2333,10 @@
       return;
     }
 
+    const patientsById = new Map(state.patients.map((patient) => [patient.id, patient]));
     elements.activityList.innerHTML = activities
       .map((activity) => {
-        const patient = state.patients.find((item) => item.id === activity.patientId);
+        const patient = patientsById.get(activity.patientId);
         return `
           <div class="activity-item">
             <span class="activity-avatar" aria-hidden="true">
@@ -3531,14 +3685,14 @@
     if (!value) return "-";
     const date = new Date(`${value}T12:00:00`);
     if (Number.isNaN(date.getTime())) return "-";
-    return new Intl.DateTimeFormat("pt-BR").format(date);
+    return shortDateFormatter.format(date);
   }
 
   function formatPurchaseDateTime(value) {
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
-    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
+    return purchaseDateTimeFormatter.format(date);
   }
 
   function formatPurchasePhone(value) {
@@ -3547,6 +3701,511 @@
     if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+
+  function sanitizeDebtClient(record) {
+    return {
+      ...record,
+      customerName: String(record?.customerName || "").trim(),
+      phone: formatPurchasePhone(record?.phone || ""),
+      cpf: String(record?.cpf || ""),
+      items: Array.isArray(record?.items) ? record.items.map((item) => ({
+        id: String(item.id || crypto.randomUUID()), productName: String(item.productName || ""), ean: String(item.ean || item.barcode || ""), quantity: Math.max(1, Number(item.quantity) || 1), price: Math.max(0, Number(item.price) || 0),
+      })) : [],
+      payments: Array.isArray(record?.payments) ? record.payments.map((payment) => ({ id: String(payment.id || crypto.randomUUID()), amount: Math.max(0, Number(payment.amount) || 0), createdAt: payment.createdAt || "" })) : [],
+    };
+  }
+
+  function getDebtClientTotal(client) {
+    return client.items.reduce((sum, item) => sum + item.quantity * item.price, 0) - client.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  }
+
+  function renderDebtClients() {
+    const query = normalize(elements.debtClientSearch?.value || "");
+    const digits = String(elements.debtClientSearch?.value || "").replace(/\D/g, "");
+    const clients = state.debts.filter((client) => !query
+      || normalize(client.customerName).includes(query)
+      || normalize(client.phone).includes(query)
+      || normalize(client.cpf).includes(query)
+      || (digits && `${client.phone}${client.cpf}`.replace(/\D/g, "").includes(digits)));
+    const countElement = document.getElementById("debt-clients-count");
+    if (countElement) countElement.textContent = `${clients.length} ${clients.length === 1 ? "cliente" : "clientes"}`;
+    elements.debtClientsList.innerHTML = clients.length ? clients.map((client) => `
+      <button class="debt-client-card" type="button" data-debt-client-id="${escapeHtml(client.id)}"><span><strong>${escapeHtml(client.customerName)}</strong><small>${escapeHtml([client.phone, client.cpf ? `CPF ${client.cpf}` : ""].filter(Boolean).join(" • ") || "Telefone e CPF não informados")}</small></span><b>${formatCurrency(Math.max(0, getDebtClientTotal(client)))}</b></button>
+    `).join("") : `<div class="debt-empty">${query ? "Nenhum cliente encontrado." : "Nenhum cliente com dívida cadastrado."}</div>`;
+  }
+
+  function renderDebtDetail() {
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    if (!client) return;
+    elements.debtDetailTitle.textContent = client.customerName;
+    elements.debtTotal.textContent = formatCurrency(Math.max(0, getDebtClientTotal(client)));
+    elements.debtItemsList.innerHTML = client.items.length ? client.items.map((item) => `
+      <div class="debt-item-row"><div><strong>${escapeHtml(item.productName)}</strong><small>${item.ean ? `EAN ${escapeHtml(item.ean)} • ` : ""}${item.quantity} un.</small></div><label>Preço<input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-debt-item-price="${escapeHtml(item.id)}" /></label><strong>${formatCurrency(item.quantity * item.price)}</strong><button class="debt-item-remove" type="button" data-debt-action="remove-item" data-debt-item-id="${escapeHtml(item.id)}">Remover</button></div>
+    `).join("") : `<div class="debt-empty">Busque um produto acima para adicionar à dívida.</div>`;
+    elements.debtPaymentsList.innerHTML = client.payments.length ? client.payments.slice().reverse().map((payment) => `<div class="debt-payment-row"><span>${formatPurchaseDateTime(payment.createdAt)}</span><strong>- ${formatCurrency(payment.amount)}</strong><button type="button" data-debt-action="undo-payment" data-debt-payment-id="${escapeHtml(payment.id)}">Desfazer</button></div>`).join("") : `<div class="debt-empty">Nenhum abatimento realizado.</div>`;
+  }
+
+  function openDebtDetail(clientId) {
+    state.currentDebtClientId = clientId;
+    renderDebtDetail();
+    openModal(elements.debtDetailModal);
+    if (!state.trierProducts.length) loadTrierProducts(false, true);
+    setTimeout(() => elements.debtProductSearch.focus(), 0);
+  }
+
+  async function saveDebtClient(client) {
+    client.updatedAt = new Date().toISOString();
+    await upsertDocument(FIRESTORE_COLLECTIONS.debts, client);
+    renderDebtClients();
+    renderDebtDetail();
+  }
+
+  function renderDebtProductResults() {
+    const query = elements.debtProductSearch.value.trim();
+    if (query.length < 2) { elements.debtProductResults.classList.add("hidden"); return; }
+    const result = getQuoteProductMatches(query).matches.slice(0, MAX_QUOTE_CHOOSER_RESULTS);
+    elements.debtProductResults.innerHTML = result.length ? result.map(({ product }) => `<button type="button" data-debt-product-code="${escapeHtml(product.code || product.barcode || product.name)}"><strong>${escapeHtml(product.name)}</strong><span>${escapeHtml(product.barcode || product.code || "")} • ${formatCurrency(product.salePrice)}</span></button>`).join("") : `<div class="debt-empty">Nenhum produto encontrado.</div>`;
+    elements.debtProductResults.classList.remove("hidden");
+  }
+
+  async function ensureDebtProductsLoaded() {
+    if (state.trierProducts.length || state.debtProductsLoading) return;
+    state.debtProductsLoading = true;
+    elements.debtProductResults.classList.remove("hidden");
+    elements.debtProductResults.innerHTML = `<div class="debt-empty">Carregando produtos da Trier...</div>`;
+    try {
+      await loadTrierProducts(false, true);
+      renderDebtProductResults();
+    } finally {
+      state.debtProductsLoading = false;
+    }
+  }
+
+  async function addDebtProduct(product) {
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    if (!client) return;
+    client.items.push({ id: crypto.randomUUID(), productName: product.name, ean: product.barcode || product.code || "", quantity: 1, price: Number(product.salePrice) || 0 });
+    elements.debtProductSearch.value = "";
+    elements.debtProductResults.classList.add("hidden");
+    await saveDebtClient(client);
+  }
+
+  async function removeDebtItem(itemId) {
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    if (!client) return;
+    client.items = client.items.filter((item) => item.id !== itemId);
+    await saveDebtClient(client);
+    showToast("Produto removido da dívida.");
+  }
+
+  function openDebtRemovePassword(itemId) {
+    state.debtPendingRemoveItemId = itemId;
+    elements.debtRemoveForm.reset();
+    openModal(elements.debtRemoveModal);
+    setTimeout(() => elements.debtRemovePassword.focus(), 0);
+  }
+
+  function openDebtPayment() {
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    if (!client || getDebtClientTotal(client) <= 0) { showToast("Este cliente não possui dívida em aberto."); return; }
+    elements.debtPaymentForm.reset();
+    openModal(elements.debtPaymentModal);
+    setTimeout(() => elements.debtPaymentAmount.focus(), 0);
+  }
+
+  async function submitDebtPayment() {
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    const amount = parseNumberValue(elements.debtPaymentAmount.value);
+    const total = Math.max(0, getDebtClientTotal(client));
+    if (!client || !amount || amount <= 0 || amount > total) { showToast(`Informe um valor entre R$ 0,01 e ${formatCurrency(total)}.`); return; }
+    client.payments.push({ id: crypto.randomUUID(), amount, createdAt: new Date().toISOString() });
+    await saveDebtClient(client);
+    closeModal(elements.debtPaymentModal);
+    showToast("Abatimento registrado.");
+  }
+
+  async function undoDebtPayment(paymentId) {
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    if (!client) return;
+    client.payments = client.payments.filter((payment) => payment.id !== paymentId);
+    await saveDebtClient(client);
+    showToast("Abatimento desfeito.");
+  }
+
+  const pharmacyApplicationSavingIds = new Set();
+
+  function sanitizePharmacyApplication(record) {
+    const ampouleCount = Math.min(100, Math.max(1, Math.floor(Number(record?.ampouleCount) || 1)));
+    const completedDoses = Array.from(new Set(
+      (Array.isArray(record?.completedDoses) ? record.completedDoses : [])
+        .map((dose) => Math.floor(Number(dose)))
+        .filter((dose) => dose >= 1 && dose <= ampouleCount),
+    )).sort((left, right) => left - right);
+    const fallbackAppliedDate = record?.completedAt ? String(record.completedAt).slice(0, 10) : "";
+    const completedDoseDates = Object.fromEntries(
+      Object.entries(record?.completedDoseDates || {})
+        .map(([dose, date]) => [Math.floor(Number(dose)), String(date || "")])
+        .filter(([dose, date]) => completedDoses.includes(dose) && /^\d{4}-\d{2}-\d{2}$/.test(date))
+        .map(([dose, date]) => [String(dose), date]),
+    );
+    completedDoses.forEach((dose) => {
+      if (!completedDoseDates[String(dose)] && fallbackAppliedDate) completedDoseDates[String(dose)] = fallbackAppliedDate;
+    });
+    return {
+      ...record,
+      customerName: String(record?.customerName || "").trim(),
+      phone: formatPurchasePhone(record?.phone || ""),
+      medicine: String(record?.medicine || "").trim(),
+      ampouleCount,
+      purchaseDate: String(record?.purchaseDate || ""),
+      completedDoses,
+      completedDoseDates,
+      completedAt: completedDoses.length >= ampouleCount
+        ? String(record?.completedAt || record?.updatedAt || record?.createdAt || "")
+        : "",
+    };
+  }
+
+  function isPharmacyApplicationCompleted(record) {
+    return record.completedDoses.length >= record.ampouleCount;
+  }
+
+  function setPharmacyApplicationsTab(tabName) {
+    elements.pharmacyApplicationsTabs.forEach((tab) => {
+      const isActive = tab.dataset.pharmacyApplicationsTab === tabName;
+      tab.classList.toggle("is-active", isActive);
+      tab.setAttribute("aria-selected", String(isActive));
+    });
+    elements.pharmacyApplicationsPanels.forEach((panel) => {
+      panel.classList.toggle("hidden", panel.dataset.pharmacyApplicationsPanel !== tabName);
+    });
+  }
+
+  function getPharmacyApplicationRemainingText(record) {
+    const remaining = Math.max(0, record.ampouleCount - record.completedDoses.length);
+    if (!remaining) return "Todas as aplicações concluídas";
+    return `${remaining} ${remaining === 1 ? "aplicação restante" : "aplicações restantes"}`;
+  }
+
+  function openPharmacyApplicationWhatsApp(recordId) {
+    const record = state.pharmacyApplications.find((item) => item.id === recordId);
+    if (!record) return;
+    let phone = String(record.phone || "").replace(/\D/g, "");
+    if (phone.length === 10 || phone.length === 11) phone = `55${phone}`;
+    if (!phone) {
+      showToast("Este cliente não possui um telefone válido.");
+      return;
+    }
+    const doseLines = record.completedDoses
+      .slice()
+      .sort((left, right) => left - right)
+      .map((dose) => {
+        const date = record.completedDoseDates?.[String(dose)];
+        return `${dose} dose = ${date ? formatPurchaseDate(date) : "data não informada"}`;
+      });
+    const message = [
+      `Olá ${record.customerName}, sou da Farmácia Superpreço.`,
+      `Essas foram as datas das suas aplicações de ${record.medicine}.`,
+      doseLines.length ? doseLines.join("\n") : "Nenhuma dose foi aplicada até o momento.",
+    ].join("\n");
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  }
+
+  function renderPharmacyApplicationDoses(record, interactive) {
+    const completedDoses = new Set(record.completedDoses);
+    return Array.from({ length: record.ampouleCount }, (_, index) => {
+      const dose = index + 1;
+      const completed = completedDoses.has(dose);
+      const ordinal = `${dose}ª aplicação`;
+      if (!interactive) {
+        const appliedDate = record.completedDoseDates?.[String(dose)];
+        return `
+          <div class="pharmacy-application-dose is-completed" aria-label="${ordinal} concluída">
+            <span>${ordinal}</span>
+            <strong>Concluído</strong>
+            ${appliedDate ? `<small>${formatPurchaseDate(appliedDate)}</small>` : ""}
+          </div>
+        `;
+      }
+      const appliedDate = record.completedDoseDates?.[String(dose)];
+      return `
+        <button class="pharmacy-application-dose${completed ? " is-completed" : ""}" type="button" data-pharmacy-application-action="toggle-dose" data-pharmacy-application-id="${escapeHtml(record.id)}" data-pharmacy-application-dose="${dose}" aria-pressed="${String(completed)}">
+          <span>${ordinal}</span>
+          <strong>${completed ? "Concluído" : "Pendente"}</strong>
+          ${appliedDate ? `<small>${formatPurchaseDate(appliedDate)}</small>` : ""}
+        </button>
+      `;
+    }).join("");
+  }
+
+  function renderPendingPharmacyApplications() {
+    const query = normalize(elements.pharmacyApplicationsSearch?.value || "");
+    const digits = String(elements.pharmacyApplicationsSearch?.value || "").replace(/\D/g, "");
+    const applications = state.pharmacyApplications
+      .filter((record) => !isPharmacyApplicationCompleted(record))
+      .filter((record) => !query || normalize(record.customerName).includes(query) || normalize(record.phone).includes(query) || (digits && String(record.phone).replace(/\D/g, "").includes(digits)))
+      .sort((left, right) => String(right.createdAt || "").localeCompare(String(left.createdAt || "")));
+    elements.pharmacyApplicationsPendingCount.textContent = `${applications.length} ${applications.length === 1 ? "cliente" : "clientes"}`;
+    if (!applications.length) {
+      elements.pharmacyApplicationsPendingList.innerHTML = `<div class="pharmacy-applications-empty">${query ? "Nenhum cliente encontrado para esta busca." : "Nenhuma aplicação pendente. Use o cadastro ao lado para começar um novo acompanhamento."}</div>`;
+      return;
+    }
+
+    elements.pharmacyApplicationsPendingList.innerHTML = applications.map((record) => `
+      <article class="pharmacy-application-card">
+        <div class="pharmacy-application-card-header">
+          <div class="pharmacy-application-client">
+            <strong>${escapeHtml(record.customerName)}</strong>
+            <span>${escapeHtml(record.phone || "Telefone não informado")}</span>
+          </div>
+          <div class="pharmacy-application-card-actions">
+            <span class="pharmacy-application-remaining">${getPharmacyApplicationRemainingText(record)}</span>
+            <button class="pharmacy-application-whatsapp" type="button" data-pharmacy-application-action="whatsapp" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Enviar mensagem para ${escapeHtml(record.customerName)} pelo WhatsApp" title="Enviar WhatsApp"><span aria-hidden="true">◔</span> WhatsApp</button>
+            <button class="pharmacy-application-edit" type="button" data-pharmacy-application-action="edit" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Editar ${escapeHtml(record.customerName)}" title="Editar cadastro">✎</button>
+            <button class="pharmacy-application-remove" type="button" data-pharmacy-application-action="remove" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Remover aplicações de ${escapeHtml(record.customerName)}" title="Remover cadastro">×</button>
+          </div>
+        </div>
+        <div class="pharmacy-application-purchase">
+          <div><span>Medicamento</span><strong>${escapeHtml(record.medicine)}</strong></div>
+          <div><span>Compra</span><strong>${formatPurchaseDate(record.purchaseDate)}</strong></div>
+          <div><span>Ampolas</span><strong>${record.ampouleCount}</strong></div>
+        </div>
+        <div class="pharmacy-application-doses">${renderPharmacyApplicationDoses(record, true)}</div>
+      </article>
+    `).join("");
+  }
+
+  function renderCompletedPharmacyApplications() {
+    const applications = state.pharmacyApplications
+      .filter(isPharmacyApplicationCompleted)
+      .sort((left, right) => String(right.completedAt || right.updatedAt || "").localeCompare(String(left.completedAt || left.updatedAt || "")));
+    elements.pharmacyApplicationsCompletedCount.textContent = `${applications.length} ${applications.length === 1 ? "cliente" : "clientes"}`;
+    if (!applications.length) {
+      elements.pharmacyApplicationsCompletedList.innerHTML = `<div class="pharmacy-applications-empty">Nenhuma aplicação finalizada até o momento.</div>`;
+      return;
+    }
+
+    elements.pharmacyApplicationsCompletedList.innerHTML = applications.map((record) => `
+      <article class="pharmacy-application-card is-completed">
+        <div class="pharmacy-application-card-header">
+          <div class="pharmacy-application-client">
+            <strong>${escapeHtml(record.customerName)}</strong>
+            <span>${escapeHtml(record.phone || "Telefone não informado")}</span>
+          </div>
+          <div class="pharmacy-application-card-actions">
+            <span class="pharmacy-application-finished">Finalizado${record.completedAt ? ` em ${formatPurchaseDateTime(record.completedAt)}` : ""}</span>
+            <button class="pharmacy-application-whatsapp" type="button" data-pharmacy-application-action="whatsapp" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Enviar mensagem para ${escapeHtml(record.customerName)} pelo WhatsApp" title="Enviar WhatsApp"><span aria-hidden="true">◔</span> WhatsApp</button>
+            <button class="pharmacy-application-edit" type="button" data-pharmacy-application-action="edit" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Editar ${escapeHtml(record.customerName)}" title="Editar cadastro">✎</button>
+            <button class="pharmacy-application-recover" type="button" data-pharmacy-application-action="recover" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Recuperar aplicação de ${escapeHtml(record.customerName)}" title="Recuperar última aplicação">↶ Recuperar</button>
+            <button class="pharmacy-application-remove" type="button" data-pharmacy-application-action="remove" data-pharmacy-application-id="${escapeHtml(record.id)}" aria-label="Remover histórico de ${escapeHtml(record.customerName)}" title="Remover cadastro">×</button>
+          </div>
+        </div>
+        <div class="pharmacy-application-purchase">
+          <div><span>Medicamento comprado</span><strong>${escapeHtml(record.medicine)}</strong></div>
+          <div><span>Data da compra</span><strong>${formatPurchaseDate(record.purchaseDate)}</strong></div>
+          <div><span>Aplicações</span><strong>${record.ampouleCount} concluídas</strong></div>
+        </div>
+        <div class="pharmacy-application-doses">${renderPharmacyApplicationDoses(record, false)}</div>
+      </article>
+    `).join("");
+  }
+
+  function renderPharmacyApplications() {
+    renderPendingPharmacyApplications();
+    renderCompletedPharmacyApplications();
+  }
+
+  function openPharmacyApplicationsModal() {
+    renderPharmacyApplications();
+    setPharmacyApplicationsTab("pending");
+    if (!elements.pharmacyApplicationPurchaseDate.value) {
+      elements.pharmacyApplicationPurchaseDate.value = getLocalIsoDate();
+    }
+    openModal(elements.pharmacyApplicationsModal);
+    setTimeout(() => elements.pharmacyApplicationName.focus(), 0);
+  }
+
+  async function refreshPharmacyApplicationsData() {
+    if (elements.refreshPharmacyApplications.disabled) return;
+    elements.refreshPharmacyApplications.disabled = true;
+    elements.refreshPharmacyApplications.setAttribute("aria-busy", "true");
+    try {
+      const applications = await loadCollection(FIRESTORE_COLLECTIONS.pharmacyApplications);
+      state.pharmacyApplications = applications.map(sanitizePharmacyApplication);
+      renderPharmacyApplications();
+      showToast("Aplicações atualizadas.");
+    } catch (error) {
+      console.error("Erro ao atualizar aplicações da farmácia:", error);
+      showToast(getFirebaseMessage(error));
+    } finally {
+      elements.refreshPharmacyApplications.disabled = false;
+      elements.refreshPharmacyApplications.removeAttribute("aria-busy");
+    }
+  }
+
+  function editPharmacyApplication(recordId) {
+    const record = state.pharmacyApplications.find((item) => item.id === recordId);
+    if (!record) return;
+    state.editingPharmacyApplicationId = record.id;
+    elements.pharmacyApplicationName.value = record.customerName;
+    elements.pharmacyApplicationPhone.value = record.phone;
+    elements.pharmacyApplicationMedicine.value = record.medicine;
+    elements.pharmacyApplicationAmpoules.value = record.ampouleCount;
+    elements.pharmacyApplicationPurchaseDate.value = record.purchaseDate || getLocalIsoDate();
+    elements.pharmacyApplicationFormTitle.textContent = "Editar aplicação";
+    elements.pharmacyApplicationSubmit.textContent = "Salvar alterações";
+    setPharmacyApplicationsTab("pending");
+    elements.pharmacyApplicationName.focus();
+  }
+
+  function resetPharmacyApplicationForm() {
+    state.editingPharmacyApplicationId = "";
+    elements.pharmacyApplicationForm.reset();
+    elements.pharmacyApplicationPurchaseDate.value = getLocalIsoDate();
+    elements.pharmacyApplicationFormTitle.textContent = "Cadastrar aplicação";
+    elements.pharmacyApplicationSubmit.textContent = "Cadastrar aplicação";
+  }
+
+  async function createPharmacyApplication() {
+    const ampouleCount = Math.floor(Number(elements.pharmacyApplicationAmpoules.value));
+    if (!Number.isInteger(ampouleCount) || ampouleCount < 1 || ampouleCount > 100) {
+      showToast("Informe uma quantidade de ampolas entre 1 e 100.");
+      elements.pharmacyApplicationAmpoules.focus();
+      return;
+    }
+
+    const editingRecord = state.pharmacyApplications.find((item) => item.id === state.editingPharmacyApplicationId);
+    const record = sanitizePharmacyApplication({
+      ...(editingRecord || {}),
+      id: editingRecord?.id || crypto.randomUUID(),
+      customerName: elements.pharmacyApplicationName.value,
+      phone: elements.pharmacyApplicationPhone.value,
+      medicine: elements.pharmacyApplicationMedicine.value,
+      ampouleCount,
+      purchaseDate: elements.pharmacyApplicationPurchaseDate.value,
+      completedDoses: editingRecord?.completedDoses || [],
+      completedDoseDates: editingRecord?.completedDoseDates || {},
+      completedAt: editingRecord?.completedAt || "",
+      createdAt: editingRecord?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    if (!record.customerName || !record.medicine || !record.purchaseDate) {
+      showToast("Preencha todos os dados da aplicação.");
+      return;
+    }
+
+    elements.pharmacyApplicationSubmit.disabled = true;
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.pharmacyApplications, record);
+      if (editingRecord) {
+        const index = state.pharmacyApplications.findIndex((item) => item.id === record.id);
+        if (index >= 0) state.pharmacyApplications[index] = record;
+      } else {
+        state.pharmacyApplications.unshift(record);
+      }
+      resetPharmacyApplicationForm();
+      setPharmacyApplicationsTab("pending");
+      renderPharmacyApplications();
+      showToast(editingRecord ? "Aplicação atualizada com sucesso." : "Aplicação cadastrada com sucesso.");
+      elements.pharmacyApplicationName.focus();
+    } catch (error) {
+      console.error("Erro ao cadastrar aplicação da farmácia:", error);
+      showToast(getFirebaseMessage(error));
+    } finally {
+      elements.pharmacyApplicationSubmit.disabled = false;
+    }
+  }
+
+  async function togglePharmacyApplicationDose(recordId, dose) {
+    if (pharmacyApplicationSavingIds.has(recordId)) return;
+    const index = state.pharmacyApplications.findIndex((record) => record.id === recordId);
+    if (index < 0) return;
+    const current = state.pharmacyApplications[index];
+    if (isPharmacyApplicationCompleted(current) || dose < 1 || dose > current.ampouleCount) return;
+
+    const completedDoses = new Set(current.completedDoses);
+    if (completedDoses.has(dose)) completedDoses.delete(dose);
+    else completedDoses.add(dose);
+    const next = sanitizePharmacyApplication({
+      ...current,
+      completedDoses: Array.from(completedDoses),
+      completedDoseDates: Object.fromEntries(
+        Array.from(completedDoses).map((completedDose) => [
+          String(completedDose), current.completedDoseDates?.[String(completedDose)] || getLocalIsoDate(),
+        ]),
+      ),
+      completedAt: completedDoses.size >= current.ampouleCount ? new Date().toISOString() : "",
+      updatedAt: new Date().toISOString(),
+    });
+
+    pharmacyApplicationSavingIds.add(recordId);
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.pharmacyApplications, next);
+      state.pharmacyApplications[index] = next;
+      renderPharmacyApplications();
+      if (isPharmacyApplicationCompleted(next)) {
+        setPharmacyApplicationsTab("completed");
+        showToast("Todas as doses foram concluídas. Cliente movido para Aplicações finalizadas.");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar dose da aplicação:", error);
+      showToast(getFirebaseMessage(error));
+    } finally {
+      pharmacyApplicationSavingIds.delete(recordId);
+    }
+  }
+
+  async function recoverPharmacyApplication(recordId) {
+    if (pharmacyApplicationSavingIds.has(recordId)) return;
+    const index = state.pharmacyApplications.findIndex((record) => record.id === recordId);
+    if (index < 0) return;
+    const current = state.pharmacyApplications[index];
+    if (!isPharmacyApplicationCompleted(current)) return;
+    const lastDose = Math.max(...current.completedDoses);
+    const completedDoses = current.completedDoses.filter((dose) => dose !== lastDose);
+    const completedDoseDates = { ...(current.completedDoseDates || {}) };
+    delete completedDoseDates[String(lastDose)];
+    const next = sanitizePharmacyApplication({
+      ...current,
+      completedDoses,
+      completedDoseDates,
+      completedAt: "",
+      updatedAt: new Date().toISOString(),
+    });
+    pharmacyApplicationSavingIds.add(recordId);
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.pharmacyApplications, next);
+      state.pharmacyApplications[index] = next;
+      renderPharmacyApplications();
+      setPharmacyApplicationsTab("pending");
+      showToast("Cliente recuperado. A última aplicação voltou para pendente.");
+    } catch (error) {
+      console.error("Erro ao recuperar aplicação:", error);
+      showToast(getFirebaseMessage(error));
+    } finally {
+      pharmacyApplicationSavingIds.delete(recordId);
+    }
+  }
+
+  async function removePharmacyApplication(recordId) {
+    const record = state.pharmacyApplications.find((item) => item.id === recordId);
+    if (!record || pharmacyApplicationSavingIds.has(recordId)) return;
+    const confirmed = window.confirm(`Deseja remover o cadastro de aplicações de ${record.customerName}?`);
+    if (!confirmed) return;
+
+    pharmacyApplicationSavingIds.add(recordId);
+    try {
+      await deleteDocument(FIRESTORE_COLLECTIONS.pharmacyApplications, recordId);
+      state.pharmacyApplications = state.pharmacyApplications.filter((item) => item.id !== recordId);
+      renderPharmacyApplications();
+      showToast("Cadastro de aplicações removido.");
+    } catch (error) {
+      console.error("Erro ao remover aplicação da farmácia:", error);
+      showToast(getFirebaseMessage(error));
+    } finally {
+      pharmacyApplicationSavingIds.delete(recordId);
+    }
   }
 
   function setPurchasesTab(tabName) {
@@ -4398,6 +5057,29 @@
     return product?.averageCost ?? product?.costPrice ?? null;
   }
 
+  const MAX_QUOTE_CHOOSER_RESULTS = 200;
+
+  function rebuildTrierProductSearchIndex() {
+    const exactKeys = new Map();
+    const exactNames = new Map();
+    state.trierProductSearchIndex = state.trierProducts
+      .map((product, index) => {
+        const normalizedName = normalize(product.name);
+        [product.code, product.barcode].filter(Boolean).forEach((key) => exactKeys.set(String(key), product));
+        if (exactNames.has(normalizedName)) exactNames.set(normalizedName, null);
+        else exactNames.set(normalizedName, product);
+        return {
+          product,
+          index,
+          normalizedName,
+          normalizedActiveIngredient: normalize(product.activeIngredient),
+        };
+      })
+      .sort((left, right) => left.product.name.localeCompare(right.product.name, "pt-BR"));
+    state.trierProductsByExactKey = exactKeys;
+    state.trierProductsByExactName = exactNames;
+  }
+
   async function getBrowserTrierService(path) {
     let response;
     try {
@@ -4420,28 +5102,35 @@
   function findExactQuoteProduct(value) {
     const digits = String(value || "").replace(/\D/g, "");
     if (!digits) return null;
-    return state.trierProducts.find((product) => product.barcode === digits || product.code === digits) || null;
+    return state.trierProductsByExactKey.get(digits) || null;
   }
 
   function findExactQuoteName(value) {
     const query = normalize(String(value || "").trim());
     if (!query) return null;
-    const matches = state.trierProducts.filter((product) => normalize(product.name) === query);
-    return matches.length === 1 ? matches[0] : null;
+    return state.trierProductsByExactName.get(query) || null;
   }
 
   function getQuoteProductMatches(value) {
     const query = normalize(String(value || "").trim());
-    if (query.length < 2) return [];
+    if (query.length < 2) return { matches: [], hasMore: false };
     const digits = String(value || "").replace(/\D/g, "");
-    return state.trierProducts
-      .map((product, index) => ({ product, index }))
-      .filter(({ product }) => (
-        normalize(product.name).includes(query)
-        || normalize(product.activeIngredient).includes(query)
-        || (digits && (product.barcode.includes(digits) || product.code === digits))
-      ))
-      .sort((left, right) => left.product.name.localeCompare(right.product.name, "pt-BR"));
+    const matches = [];
+    let hasMore = false;
+    for (const entry of state.trierProductSearchIndex) {
+      const { product, normalizedName, normalizedActiveIngredient } = entry;
+      if (
+        !normalizedName.includes(query)
+        && !normalizedActiveIngredient.includes(query)
+        && !(digits && (product.barcode.includes(digits) || product.code === digits))
+      ) continue;
+      if (matches.length >= MAX_QUOTE_CHOOSER_RESULTS) {
+        hasMore = true;
+        break;
+      }
+      matches.push({ product, index: entry.index });
+    }
+    return { matches, hasMore };
   }
 
   function openQuoteProductChooser(query) {
@@ -4460,7 +5149,9 @@
 
   function renderQuoteProductChooserResults() {
     const query = elements.quoteProductChooserSearch.value;
-    state.quoteProductChooserMatches = getQuoteProductMatches(query);
+    const result = getQuoteProductMatches(query);
+    state.quoteProductChooserMatches = result.matches;
+    state.quoteProductChooserHasMore = result.hasMore;
     state.selectedQuoteChooserIndex = state.quoteProductChooserMatches.some(({ index }) => index === state.selectedQuoteChooserIndex)
       ? state.selectedQuoteChooserIndex
       : -1;
@@ -4473,6 +5164,7 @@
       return;
     }
     elements.quoteProductChooserResults.innerHTML = `
+      ${state.quoteProductChooserHasMore ? `<p class="quote-product-chooser-limit">Mostrando os primeiros ${MAX_QUOTE_CHOOSER_RESULTS} resultados. Refine a busca para encontrar o produto mais rápido.</p>` : ""}
       <table class="quote-product-chooser-table">
         <thead><tr><th scope="col">Produto</th><th scope="col">Apresentação</th><th scope="col">Laboratório</th><th scope="col">Estoque</th><th scope="col">Rentabilidade (R$)</th><th scope="col">Preço Venda (R$)</th></tr></thead>
         <tbody role="listbox" aria-label="Opções de produtos">
@@ -4499,13 +5191,18 @@
   function showQuoteProductChooserDetails(index) {
     const match = state.quoteProductChooserMatches.find((entry) => entry.index === index);
     if (!match) return;
+    const previousRow = elements.quoteProductChooserResults.querySelector(".quote-product-chooser-option.is-selected");
+    if (previousRow) {
+      previousRow.classList.remove("is-selected");
+      previousRow.setAttribute("aria-selected", "false");
+    }
     state.selectedQuoteChooserIndex = index;
     const { product } = match;
     const cost = getTrierProductCost(product);
-    renderQuoteProductChooserResults();
-    elements.quoteProductChooserResults
-      .querySelector(`[data-trier-product-index="${index}"]`)
-      ?.focus();
+    const selectedRow = elements.quoteProductChooserResults.querySelector(`[data-trier-product-index="${index}"]`);
+    selectedRow?.classList.add("is-selected");
+    selectedRow?.setAttribute("aria-selected", "true");
+    selectedRow?.focus();
     elements.quoteProductChooserDetail.classList.remove("hidden");
     elements.quoteProductChooserDetail.innerHTML = `
       <div class="quote-product-chooser-product-heading"><strong>Produto selecionado</strong><span>${escapeHtml(product.name)}</span></div>
@@ -4535,11 +5232,10 @@
       return;
     }
 
-    const matches = state.trierProducts
-      .map((product, index) => ({ product, index, normalizedName: normalize(product.name) }))
-      .filter(({ product, normalizedName }) => (
+    const matches = state.trierProductSearchIndex
+      .filter(({ product, normalizedName, normalizedActiveIngredient }) => (
         normalizedName.includes(query)
-        || normalize(product.activeIngredient).includes(query)
+        || normalizedActiveIngredient.includes(query)
         || (digits && (product.barcode.includes(digits) || product.code === digits))
       ))
       .sort((left, right) => {
@@ -4561,6 +5257,31 @@
         <span class="quote-search-option-meta"><strong>${formatCurrency(product.salePrice)}</strong><small>${product.hasDiscount ? "Preço com desconto" : "Preço Trier"} • ${escapeHtml(String(product.stock))} ${escapeHtml(product.unit)} em estoque</small></span>
       </button>
     `).join("");
+  }
+
+  function getQuoteDiscountPercent(product, price) {
+    const basePrice = Number(product?.salePrice);
+    if (!Number.isFinite(basePrice) || basePrice <= 0 || !Number.isFinite(price)) return null;
+    return Math.max(0, Math.min(100, ((basePrice - price) / basePrice) * 100));
+  }
+
+  function formatQuoteDiscountPercent(percent) {
+    if (!Number.isFinite(percent)) return "";
+    const rounded = Math.round(percent * 100) / 100;
+    return formatPercent(rounded, Number.isInteger(rounded) ? 0 : 2);
+  }
+
+  function getQuoteDiscountLabel(product, price) {
+    const percent = getQuoteDiscountPercent(product, price);
+    return percent === null ? "" : `${formatQuoteDiscountPercent(percent)} de desconto`;
+  }
+
+  function updateSelectedQuoteProductDiscount() {
+    const price = parseNumberValue(elements.quoteProductPrice.value);
+    const label = getQuoteDiscountLabel(state.selectedQuoteProduct, price);
+    elements.quoteProductDiscount.textContent = label;
+    elements.quoteProductDiscount.classList.toggle("hidden", !label);
+    elements.quoteProductDiscount.classList.toggle("has-discount", (getQuoteDiscountPercent(state.selectedQuoteProduct, price) || 0) > 0);
   }
 
   function selectQuoteProduct(product, { focusQuantity = true } = {}) {
@@ -4586,6 +5307,7 @@
       </div>
     `;
     elements.quoteSelectedProduct.classList.remove("hidden");
+    updateSelectedQuoteProductDiscount();
     if (focusQuantity) {
       elements.quoteProductQuantity.focus();
       elements.quoteProductQuantity.select();
@@ -4603,11 +5325,15 @@
   function resetQuoteProductSelection() {
     state.selectedQuoteProduct = null;
     state.quoteProductChooserMatches = [];
+    state.quoteProductChooserHasMore = false;
     state.selectedQuoteChooserIndex = -1;
     elements.quoteProductSearch.value = "";
     elements.quoteProductSearch.disabled = state.submittingQuoteToPdv;
     elements.quoteProductQuantity.value = "1";
     elements.quoteProductPrice.value = "";
+    elements.quoteProductDiscount.textContent = "";
+    elements.quoteProductDiscount.classList.add("hidden");
+    elements.quoteProductDiscount.classList.remove("has-discount");
     elements.quoteAddProduct.disabled = true;
     elements.quoteSelectedProduct.classList.add("hidden");
     elements.quoteSelectedProduct.innerHTML = "";
@@ -4621,6 +5347,7 @@
     elements.quoteItems.classList.toggle("hidden", !hasItems);
     elements.sendWhatsappQuote.disabled = !hasItems;
     elements.copyWhatsappQuote.disabled = !hasItems;
+    elements.editWhatsappQuote.disabled = !hasItems;
     elements.sendPdvQuote.disabled = !hasItems || state.submittingQuoteToPdv || Boolean(state.quotePdvSale);
     elements.sendPdvQuote.textContent = state.submittingQuoteToPdv
       ? "Enviando ao PDV..."
@@ -4644,6 +5371,8 @@
     elements.quoteItems.innerHTML = state.whatsappQuoteItems.map((item) => {
       const cost = getTrierProductCost(item.product);
       const exceedsStock = item.quantity > item.product.stock;
+      const discountLabel = getQuoteDiscountLabel(item.product, item.price);
+      const hasDiscount = (getQuoteDiscountPercent(item.product, item.price) || 0) > 0;
       return `
         <article class="quote-item" data-quote-item-id="${item.id}">
           <div class="quote-item-copy">
@@ -4652,7 +5381,7 @@
             ${exceedsStock ? `<small class="quote-stock-warning">Quantidade acima do estoque disponível</small>` : ""}
           </div>
           <label class="quote-item-field"><span>Qtd.</span><input type="number" min="1" step="1" value="${item.quantity}" data-quote-item-action="quantity"${state.submittingQuoteToPdv ? " disabled" : ""} /></label>
-          <label class="quote-item-field quote-item-price"><span>Valor unitário</span><div class="quote-money-input"><span>R$</span><input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-quote-item-action="price"${state.submittingQuoteToPdv ? " disabled" : ""} /></div></label>
+          <label class="quote-item-field quote-item-price"><span>Valor unitário ${discountLabel ? `<strong class="quote-discount-badge${hasDiscount ? " has-discount" : ""}">${escapeHtml(discountLabel)}</strong>` : ""}</span><div class="quote-money-input"><span>R$</span><input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-quote-item-action="price"${state.submittingQuoteToPdv ? " disabled" : ""} /></div></label>
           <div class="quote-item-subtotal"><span>Subtotal</span><strong>${formatCurrency(item.quantity * item.price)}</strong></div>
           <button class="quote-item-remove" type="button" data-quote-item-action="remove" aria-label="Remover ${escapeHtml(item.product.name)}"${state.submittingQuoteToPdv ? " disabled" : ""}>×</button>
         </article>
@@ -4699,16 +5428,50 @@
       "🧾 *ORÇAMENTO - FARMÁCIA SUPERPREÇO*",
       customerName ? `Olá, ${customerName}! Segue o seu orçamento:` : "Olá! Segue o seu orçamento:",
       "",
-      ...state.whatsappQuoteItems.flatMap((item, index) => [
-        `*${index + 1}. ${item.product.name}*`,
-        `${item.quantity} x ${formatCurrency(item.price)} = *${formatCurrency(item.quantity * item.price)}*`,
-        "",
-      ]),
+      ...state.whatsappQuoteItems.flatMap((item, index) => {
+        const discountPercent = getQuoteDiscountPercent(item.product, item.price);
+        return [
+          `*${index + 1}. ${item.product.name}*`,
+          `${item.quantity} x ${formatCurrency(item.price)} = *${formatCurrency(item.quantity * item.price)}*`,
+          discountPercent > 0
+            ? `🏷️ *${formatQuoteDiscountPercent(discountPercent)} de desconto* (preço original: ${formatCurrency(item.product.salePrice)})`
+            : null,
+          "",
+        ].filter((line) => line !== null);
+      }),
       `💰 *TOTAL: ${formatCurrency(total)}*`,
       "",
       "📦 Valores sujeitos à disponibilidade de estoque.",
     ];
     return lines.join("\n");
+  }
+
+  function getWhatsappQuoteMessage() {
+    return state.whatsappQuoteCustomMessage ?? buildWhatsappQuoteMessage();
+  }
+
+  function openQuoteMessageEditor() {
+    if (!state.whatsappQuoteItems.length) return;
+    elements.quoteMessageEditorText.value = getWhatsappQuoteMessage();
+    openModal(elements.quoteMessageEditorModal);
+    elements.quoteMessageEditorText.focus();
+  }
+
+  function saveQuoteMessage({ notify = false } = {}) {
+    const message = elements.quoteMessageEditorText.value.trim();
+    if (!message) {
+      showToast("A mensagem não pode ficar vazia.");
+      elements.quoteMessageEditorText.focus();
+      return false;
+    }
+    state.whatsappQuoteCustomMessage = message;
+    if (notify) showToast("Mensagem personalizada salva.");
+    return true;
+  }
+
+  function closeQuoteMessageEditor({ save = true } = {}) {
+    if (save && !saveQuoteMessage()) return;
+    closeModal(elements.quoteMessageEditorModal);
   }
 
   async function sendQuoteToPdv() {
@@ -4756,6 +5519,7 @@
     const products = Array.isArray(result?.products) ? result.products : [];
     const productsByCode = new Map(products.map((product) => [product.code, product]));
     state.trierProducts = products;
+    rebuildTrierProductSearchIndex();
     state.trierProductsSyncedAt = result?.syncedAt || new Date().toISOString();
     state.trierSyncError = "";
     state.whatsappQuoteItems = state.whatsappQuoteItems.map((item) => ({
@@ -4784,6 +5548,7 @@
       if (state.selectedQuoteChooserIndex >= 0) showQuoteProductChooserDetails(state.selectedQuoteChooserIndex);
     }
     if (!elements.whatsappQuoteModal.classList.contains("hidden")) renderWhatsappQuote();
+    if (elements.debtDetailModal && !elements.debtDetailModal.classList.contains("hidden")) renderDebtProductResults();
   }
 
   async function loadTrierProducts(forceRefresh = false, silent = false) {
@@ -5036,7 +5801,21 @@
     return String(Math.round(Math.min(120, Math.max(6, points))));
   }
 
+  let offerPreviewRenderFrame = 0;
+
+  function scheduleOfferSheetPreviewRender() {
+    if (offerPreviewRenderFrame) return;
+    offerPreviewRenderFrame = window.requestAnimationFrame(() => {
+      offerPreviewRenderFrame = 0;
+      renderOfferSheetPreview();
+    });
+  }
+
   function renderOfferSheetPreview() {
+    if (offerPreviewRenderFrame) {
+      window.cancelAnimationFrame(offerPreviewRenderFrame);
+      offerPreviewRenderFrame = 0;
+    }
     const canvasFormat = OFFER_CANVAS_FORMATS[state.offerCanvasFormat] || OFFER_CANVAS_FORMATS.story;
     const backgroundFormat = state.offerCanvasFormat === "square" ? "square" : "story";
     const name = elements.offerProductName.value.trim();
@@ -7063,7 +7842,6 @@
     elements.patientForm.querySelector("#patient-birth").value = patient.birthDate;
     elements.patientForm.querySelector("#patient-sex").value = patient.sex;
     elements.patientForm.querySelector("#patient-phone").value = patient.phone;
-    elements.patientForm.querySelector("#patient-email").value = patient.email;
     elements.patientForm.querySelector("#patient-address").value = patient.address;
     document.getElementById("modal-title").textContent = "Editar paciente";
     closeModal(elements.patientsModal);
@@ -8064,6 +8842,9 @@
     if (elements.purchasesModal && !elements.purchasesModal.classList.contains("hidden")) {
       renderPurchases();
     }
+    if (elements.pharmacyApplicationsModal && !elements.pharmacyApplicationsModal.classList.contains("hidden")) {
+      renderPharmacyApplications();
+    }
     if (elements.cashbackModal && !elements.cashbackModal.classList.contains("hidden")) {
       renderCashbackClients();
     }
@@ -8402,6 +9183,38 @@
     openUsersModal();
   });
 
+  elements.updateInstall?.addEventListener("click", async () => {
+    if (!window.desktopUpdater) {
+      showToast("A verificação automática está disponível apenas no aplicativo instalado.");
+      return;
+    }
+    elements.updateInstall.disabled = true;
+    elements.updateInstall.textContent = "Verificando...";
+    try {
+      const result = await window.desktopUpdater.check();
+      if (result?.state === "development") showToast(result.message);
+    } catch (error) {
+      showToast(error?.message || "Não foi possível verificar atualizações.");
+      elements.updateInstall.disabled = false;
+      elements.updateInstall.textContent = "Verificar atualizações";
+    }
+  });
+
+  window.desktopUpdater?.onStatus((status) => {
+    if (!elements.updateInstall) return;
+    if (status.state === "checking") {
+      elements.updateInstall.disabled = true;
+      elements.updateInstall.textContent = "Verificando...";
+    } else if (status.state === "downloading" || status.state === "available") {
+      elements.updateInstall.disabled = true;
+      elements.updateInstall.textContent = status.state === "downloading" ? `Baixando ${status.percent || 0}%` : "Baixando...";
+    } else {
+      elements.updateInstall.disabled = false;
+      elements.updateInstall.textContent = "Verificar atualizações";
+      if (status.message) showToast(status.message);
+    }
+  });
+
   elements.openAccount.addEventListener("click", () => {
     openAccountModal();
   });
@@ -8413,6 +9226,95 @@
   elements.openPurchases.addEventListener("click", () => {
     openPurchasesModal();
   });
+
+  elements.openPharmacyApplications.addEventListener("click", () => {
+    openPharmacyApplicationsModal();
+  });
+
+  elements.openDebts.addEventListener("click", () => {
+    renderDebtClients();
+    openModal(elements.debtsModal);
+    setTimeout(() => elements.debtClientName.focus(), 0);
+  });
+  elements.closeDebts.addEventListener("click", () => closeModal(elements.debtsModal));
+  elements.closeDebtDetail.addEventListener("click", () => closeModal(elements.debtDetailModal));
+  elements.closeDebtPayment.addEventListener("click", () => closeModal(elements.debtPaymentModal));
+  document.getElementById("cancel-debt-payment").addEventListener("click", () => closeModal(elements.debtPaymentModal));
+  elements.closeDebtRemove.addEventListener("click", () => closeModal(elements.debtRemoveModal));
+  document.getElementById("cancel-debt-remove").addEventListener("click", () => closeModal(elements.debtRemoveModal));
+  elements.debtRemoveForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (elements.debtRemovePassword.value !== "200506") {
+      showToast("Senha incorreta. O produto não foi removido.");
+      elements.debtRemovePassword.select();
+      return;
+    }
+    const itemId = state.debtPendingRemoveItemId;
+    state.debtPendingRemoveItemId = "";
+    closeModal(elements.debtRemoveModal);
+    await removeDebtItem(itemId);
+  });
+  elements.debtClientPhone.addEventListener("input", () => { elements.debtClientPhone.value = formatPurchasePhone(elements.debtClientPhone.value); });
+  elements.debtClientSearch.addEventListener("input", renderDebtClients);
+  elements.debtClientForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const client = sanitizeDebtClient({ id: crypto.randomUUID(), customerName: elements.debtClientName.value, phone: elements.debtClientPhone.value, cpf: elements.debtClientCpf.value, items: [], payments: [], createdAt: new Date().toISOString() });
+    if (!client.customerName) {
+      showToast("Informe o nome do cliente.");
+      elements.debtClientName.focus();
+      return;
+    }
+    await upsertDocument(FIRESTORE_COLLECTIONS.debts, client);
+    state.debts.unshift(client);
+    elements.debtClientForm.reset();
+    renderDebtClients();
+    showToast("Cliente cadastrado.");
+  });
+  elements.debtClientList?.addEventListener("click", (event) => openDebtDetail(event.target.closest("[data-debt-client-id]")?.dataset.debtClientId));
+  elements.debtClientsList.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-debt-client-id]");
+    if (card) openDebtDetail(card.dataset.debtClientId);
+  });
+  elements.debtProductSearch.addEventListener("focus", ensureDebtProductsLoaded);
+  elements.debtConfigureTrier.addEventListener("click", async () => {
+    await openWhatsappQuoteModal();
+    elements.trierConfigForm.classList.remove("hidden");
+    elements.trierConfigMessage.textContent = "Informe ou atualize o endereço e o token da Trier para usar a busca de dívidas.";
+    elements.trierApiToken.focus();
+  });
+  elements.debtProductSearch.addEventListener("input", async () => {
+    renderDebtProductResults();
+    if (!state.trierProducts.length) await ensureDebtProductsLoaded();
+    if (elements.debtProductSearch.value.trim().length >= 2 && state.trierProducts.length) {
+      state.debtProductChooserMode = true;
+      openQuoteProductChooser(elements.debtProductSearch.value.trim());
+    }
+  });
+  elements.debtProductResults.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-debt-product-code]");
+    if (!button) return;
+    const product = state.trierProducts.find((item) => String(item.code || item.barcode || item.name) === button.dataset.debtProductCode);
+    if (product) addDebtProduct(product);
+  });
+  elements.debtItemsList.addEventListener("change", async (event) => {
+    const input = event.target.closest("[data-debt-item-price]");
+    if (!input) return;
+    const client = state.debts.find((item) => item.id === state.currentDebtClientId);
+    const item = client?.items.find((entry) => entry.id === input.dataset.debtItemPrice);
+    if (!item) return;
+    item.price = Math.max(0, parseNumberValue(input.value));
+    await saveDebtClient(client);
+  });
+  elements.debtItemsList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-debt-action='remove-item']");
+    if (button) openDebtRemovePassword(button.dataset.debtItemId);
+  });
+  elements.debtPaymentsList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-debt-action='undo-payment']");
+    if (button) await undoDebtPayment(button.dataset.debtPaymentId);
+  });
+  elements.debtPaymentButton.addEventListener("click", openDebtPayment);
+  elements.debtPaymentForm.addEventListener("submit", async (event) => { event.preventDefault(); await submitDebtPayment(); });
 
   elements.openCashback.addEventListener("click", () => {
     openCashbackModal();
@@ -8495,10 +9397,14 @@
   });
 
   elements.closeQuoteProductChooser.addEventListener("click", () => {
+    state.debtProductChooserMode = false;
     closeModal(elements.quoteProductChooserModal);
   });
   elements.quoteProductChooserModal.addEventListener("click", (event) => {
-    if (event.target === elements.quoteProductChooserModal) closeModal(elements.quoteProductChooserModal);
+    if (event.target === elements.quoteProductChooserModal) {
+      state.debtProductChooserMode = false;
+      closeModal(elements.quoteProductChooserModal);
+    }
   });
   elements.quoteProductChooserResults.addEventListener("click", (event) => {
     const option = event.target.closest("[data-trier-product-index]");
@@ -8511,6 +9417,11 @@
     const product = state.trierProducts[Number(useButton.dataset.quoteChooserUse)];
     if (!product) return;
     closeModal(elements.quoteProductChooserModal);
+    if (state.debtProductChooserMode) {
+      state.debtProductChooserMode = false;
+      void addDebtProduct(product);
+      return;
+    }
     selectQuoteProduct(product);
     elements.quoteProductSearch.focus();
   });
@@ -8526,12 +9437,12 @@
       showQuoteProductChooserDetails(Number(rows[currentIndex].dataset.trierProductIndex));
     }
   });
-  elements.quoteProductChooserSearch.addEventListener("input", () => {
+  elements.quoteProductChooserSearch.addEventListener("input", debounce(() => {
     state.selectedQuoteChooserIndex = -1;
     renderQuoteProductChooserResults();
     elements.quoteProductChooserDetail.classList.add("hidden");
     elements.quoteProductChooserDetail.innerHTML = "";
-  });
+  }, 120));
 
   if (window.desktopTrier?.onProductsUpdated) {
     window.desktopTrier.onProductsUpdated((result) => applyTrierProducts(result));
@@ -8539,13 +9450,14 @@
       setTrierStatus("error", state.trierProducts.length ? "Sem conexão • usando última atualização" : "Confira conexão e token da Trier");
       state.trierSyncError = error?.message || "Não foi possível conectar ao estoque da Trier.";
       renderQuoteSearchResults();
+      if (elements.debtDetailModal && !elements.debtDetailModal.classList.contains("hidden")) renderDebtProductResults();
     });
     loadTrierProducts(false, true);
   }
 
   if (!window.desktopTrier) {
     setInterval(() => {
-      if (!elements.whatsappQuoteModal.classList.contains("hidden")) {
+      if (!elements.whatsappQuoteModal.classList.contains("hidden") || !elements.debtDetailModal.classList.contains("hidden")) {
         void loadTrierProducts(false, true);
       }
     }, 5 * 60 * 1000);
@@ -8608,6 +9520,13 @@
     addSelectedProductToQuote();
   });
 
+  elements.quoteProductPrice.addEventListener("input", updateSelectedQuoteProductDiscount);
+  elements.quoteProductPrice.addEventListener("blur", () => {
+    const price = parseNumberValue(elements.quoteProductPrice.value);
+    if (price !== null) elements.quoteProductPrice.value = formatDecimalInput(price);
+    updateSelectedQuoteProductDiscount();
+  });
+
   elements.quoteItems.addEventListener("change", (event) => {
     if (state.submittingQuoteToPdv) return;
     const input = event.target.closest("[data-quote-item-action]");
@@ -8640,6 +9559,7 @@
     if (!state.whatsappQuoteItems.length || state.submittingQuoteToPdv) return;
     if (!window.confirm("Deseja limpar todos os itens deste orçamento?")) return;
     resetQuotePdvSubmission();
+    state.whatsappQuoteCustomMessage = null;
     state.whatsappQuoteItems = [];
     elements.quoteCustomerName.value = "";
     elements.quoteCustomerCpf.value = "";
@@ -8660,7 +9580,7 @@
   elements.copyWhatsappQuote.addEventListener("click", async () => {
     if (!state.whatsappQuoteItems.length) return;
     try {
-      await copyChatMessage(buildWhatsappQuoteMessage());
+      await copyChatMessage(getWhatsappQuoteMessage());
       showToast("Mensagem do orçamento copiada.");
     } catch (error) {
       console.error("Erro ao copiar orçamento:", error);
@@ -8668,11 +9588,26 @@
     }
   });
 
+  elements.editWhatsappQuote.addEventListener("click", openQuoteMessageEditor);
+  elements.closeQuoteMessageEditor.addEventListener("click", closeQuoteMessageEditor);
+  elements.cancelQuoteMessage.addEventListener("click", () => closeQuoteMessageEditor({ save: false }));
+  elements.quoteMessageEditorModal.addEventListener("click", (event) => {
+    if (event.target === elements.quoteMessageEditorModal) closeQuoteMessageEditor();
+  });
+  elements.resetQuoteMessage.addEventListener("click", () => {
+    elements.quoteMessageEditorText.value = buildWhatsappQuoteMessage();
+    elements.quoteMessageEditorText.focus();
+  });
+  elements.saveQuoteMessage.addEventListener("click", () => {
+    if (!saveQuoteMessage({ notify: true })) return;
+    closeQuoteMessageEditor();
+  });
+
   elements.sendPdvQuote.addEventListener("click", sendQuoteToPdv);
 
   elements.sendWhatsappQuote.addEventListener("click", () => {
     if (!state.whatsappQuoteItems.length) return;
-    window.open(`https://wa.me/?text=${encodeURIComponent(buildWhatsappQuoteMessage())}`, "_blank", "noopener");
+    window.open(`https://wa.me/?text=${encodeURIComponent(getWhatsappQuoteMessage())}`, "_blank", "noopener");
   });
 
   elements.closeCashback.addEventListener("click", () => {
@@ -8856,6 +9791,56 @@
     }
   });
 
+  elements.closePharmacyApplications.addEventListener("click", () => {
+    closeModal(elements.pharmacyApplicationsModal);
+  });
+
+  elements.refreshPharmacyApplications.addEventListener("click", refreshPharmacyApplicationsData);
+
+  elements.pharmacyApplicationsTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      setPharmacyApplicationsTab(tab.dataset.pharmacyApplicationsTab);
+    });
+  });
+
+  elements.pharmacyApplicationsSearch.addEventListener("input", () => {
+    renderPendingPharmacyApplications();
+  });
+
+  elements.pharmacyApplicationForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await createPharmacyApplication();
+  });
+
+  elements.pharmacyApplicationPhone.addEventListener("input", () => {
+    elements.pharmacyApplicationPhone.value = formatPurchasePhone(elements.pharmacyApplicationPhone.value);
+  });
+
+  [elements.pharmacyApplicationsPendingList, elements.pharmacyApplicationsCompletedList].forEach((list) => {
+    list.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-pharmacy-application-action]");
+      if (!button) return;
+      const { pharmacyApplicationAction, pharmacyApplicationId, pharmacyApplicationDose } = button.dataset;
+      if (pharmacyApplicationAction === "whatsapp") {
+        openPharmacyApplicationWhatsApp(pharmacyApplicationId);
+        return;
+      }
+      if (pharmacyApplicationAction === "edit") {
+        editPharmacyApplication(pharmacyApplicationId);
+        return;
+      }
+      button.disabled = true;
+      if (pharmacyApplicationAction === "toggle-dose") {
+        await togglePharmacyApplicationDose(pharmacyApplicationId, Number(pharmacyApplicationDose));
+      } else if (pharmacyApplicationAction === "recover") {
+        await recoverPharmacyApplication(pharmacyApplicationId);
+      } else if (pharmacyApplicationAction === "remove") {
+        await removePharmacyApplication(pharmacyApplicationId);
+      }
+      if (button.isConnected) button.disabled = false;
+    });
+  });
+
   elements.closePricing.addEventListener("click", () => {
     closeModal(elements.pricingModal);
   });
@@ -9009,7 +9994,7 @@
 
   elements.offerSheetForm.addEventListener("input", () => {
     elements.offerDiscountPrice.setCustomValidity("");
-    renderOfferSheetPreview();
+    scheduleOfferSheetPreviewRender();
   });
 
   function positionOfferSettingsPanel(details) {
@@ -9397,7 +10382,7 @@
     closeModal(elements.clinicalModal);
   });
 
-  [elements.patientModal, elements.patientsModal, elements.serviceModal, elements.historyModal, elements.usersModal, elements.registerModal, elements.doctorsModal, elements.doctorLookupModal, elements.purchasesModal, elements.cashbackModal, elements.cashbackMessageModal, elements.pricingModal, elements.onlineOffersModal, elements.offerSheetModal, elements.savedOfferArtsModal, elements.offerArtNameModal, elements.medicinesModal, elements.chatModal].forEach((modal) => {
+  [elements.patientModal, elements.patientsModal, elements.serviceModal, elements.historyModal, elements.usersModal, elements.registerModal, elements.doctorsModal, elements.doctorLookupModal, elements.purchasesModal, elements.pharmacyApplicationsModal, elements.debtsModal, elements.debtDetailModal, elements.debtPaymentModal, elements.debtRemoveModal, elements.cashbackModal, elements.cashbackMessageModal, elements.pricingModal, elements.onlineOffersModal, elements.offerSheetModal, elements.savedOfferArtsModal, elements.offerArtNameModal, elements.medicinesModal, elements.chatModal].forEach((modal) => {
     modal.addEventListener("click", (event) => {
       if (event.target === modal) {
         closeModal(modal);
@@ -9508,6 +10493,7 @@
 
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      if (!elements.quoteMessageEditorModal.classList.contains("hidden")) closeQuoteMessageEditor();
       closeCustomDatePicker();
       setSidebarOpen(false);
       closeModal(elements.patientModal);
@@ -9517,6 +10503,14 @@
       closeModal(elements.doctorsModal);
       closeModal(elements.doctorLookupModal);
       closeModal(elements.whatsappQuoteModal);
+      closeModal(elements.purchasesModal);
+      closeModal(elements.pharmacyApplicationsModal);
+      closeModal(elements.debtsModal);
+      closeModal(elements.debtDetailModal);
+      closeModal(elements.debtPaymentModal);
+      closeModal(elements.debtRemoveModal);
+      closeModal(elements.cashbackModal);
+      closeModal(elements.cashbackMessageModal);
       closeModal(elements.pricingModal);
       closeModal(elements.onlineOffersModal);
       closeModal(elements.offerSheetModal);
@@ -9559,13 +10553,14 @@
     event.preventDefault();
 
     const formData = new FormData(elements.patientForm);
+    const existingPatient = state.patients.find((item) => item.id === state.editingPatientId);
     const patientData = {
       name: formData.get("name").trim(),
       cpf: formData.get("cpf").trim(),
       birthDate: formData.get("birthDate"),
       sex: formData.get("sex"),
       phone: formData.get("phone").trim(),
-      email: formData.get("email").trim(),
+      email: existingPatient?.email || "",
       address: formData.get("address").trim(),
     };
 

@@ -46,3 +46,13 @@ contextBridge.exposeInMainWorld("desktopTrier", {
   },
 });
 
+contextBridge.exposeInMainWorld("desktopUpdater", {
+  check: () => ipcRenderer.invoke("updates:check"),
+  onStatus: (callback) => {
+    if (typeof callback !== "function") throw new TypeError("O callback de atualização precisa ser uma função.");
+    const listener = (_event, status) => callback(status);
+    ipcRenderer.on("updates:status", listener);
+    return () => ipcRenderer.removeListener("updates:status", listener);
+  },
+});
+

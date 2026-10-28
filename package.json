@@ -1,6 +1,6 @@
 {
   "name": "atendimento-inj-farmacia",
-  "version": "1.0.41",
+  "version": "1.0.54",
   "description": "Aplicativo desktop para atendimento de injetaveis com Firebase.",
   "main": "electron-main.js",
   "author": "Mega",
@@ -25,7 +25,8 @@
     "build:dir": "electron-builder --dir --publish never"
   },
   "dependencies": {
-    "electron-log": "^5.2.0"
+    "electron-log": "^5.2.0",
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
     "electron": "22.3.27",
@@ -36,6 +37,12 @@
     "appId": "com.megafarmacia.atendimentoinj",
     "productName": "Atendimento Inj Farmacia",
     "artifactName": "Atendimento-Inj-Farmacia-Setup-${version}.${ext}",
+    "publish": {
+      "provider": "github",
+      "owner": "abraaonichele",
+      "repo": "sistema-farm-cia",
+      "releaseType": "release"
+    },
     "icon": "build/icon.ico",
     "directories": {
       "output": "instaladores/.build-output"

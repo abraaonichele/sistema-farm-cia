@@ -85,6 +85,14 @@
                 <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5h2l2.4 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H7" /><circle cx="10" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /></svg></span>
                 <span class="sidebar-text">Compras</span>
               </button>
+              <button class="sidebar-item" type="button" id="open-pharmacy-applications">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6M4 20l5-1 9-9-4-4-9 9-1 5Z" /><path d="m8 12 4 4M3 21l3-3" /></svg></span>
+                <span class="sidebar-text">Aplicações</span>
+              </button>
+              <button class="sidebar-item" type="button" id="open-debts">
+                <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" /><path d="M8 12h8M8 16h5" /></svg></span>
+                <span class="sidebar-text">Dívidas</span>
+              </button>
               <button class="sidebar-item" type="button" id="open-cashback">
                 <span class="sidebar-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5c-.7-.7-1.8-1-3-1-1.7 0-3 .8-3 2s1.3 1.8 3 2 3 .8 3 2-1.3 2-3 2c-1.2 0-2.4-.4-3.2-1.2M12 5v14" /></svg></span>
                 <span class="sidebar-text">CashBack</span>
@@ -134,7 +142,10 @@
 
       <section class="workspace">
         <header class="topbar">
-          <button class="button button-secondary hidden" id="topbar-logout">Sair</button>
+          <div class="topbar-actions">
+            <button class="button button-secondary update-install" id="update-install" type="button">Verificar atualizações</button>
+            <button class="button button-secondary hidden" id="topbar-logout">Sair</button>
+          </div>
         </header>
 
         <section class="hero-panel">
@@ -224,10 +235,6 @@
           <div class="field field-full">
             <label for="patient-phone">Telefone</label>
             <input id="patient-phone" name="phone" type="tel" placeholder="(00) 00000-0000" required />
-          </div>
-          <div class="field field-full">
-            <label for="patient-email">E-mail</label>
-            <input id="patient-email" name="email" type="email" placeholder="nome@exemplo.com" required />
           </div>
           <div class="field field-full">
             <label for="patient-address">Endereço</label>
@@ -910,6 +917,135 @@
       </div>
     </div>
 
+    <div class="modal-overlay hidden" id="pharmacy-applications-modal" aria-hidden="true">
+      <div class="modal-card modal-pharmacy-applications" role="dialog" aria-modal="true" aria-labelledby="pharmacy-applications-title">
+        <header class="modal-header pharmacy-applications-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon alt pharmacy-applications-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6M4 20l5-1 9-9-4-4-9 9-1 5Z" /><path d="m8 12 4 4M3 21l3-3" /></svg></div>
+            <div>
+              <p class="section-label">Controle independente da farmácia</p>
+              <h2 id="pharmacy-applications-title">Aplicações</h2>
+              <p class="pharmacy-applications-intro">Acompanhe doses aplicadas sem gerar receita ou registro nos serviços clínicos.</p>
+            </div>
+          </div>
+          <div class="pharmacy-applications-header-actions">
+            <button class="button button-secondary pharmacy-applications-refresh" id="refresh-pharmacy-applications" type="button" aria-label="Atualizar aplicações" title="Atualizar informações">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2" /></svg>
+              <span>Atualizar</span>
+            </button>
+            <button class="icon-button" id="close-pharmacy-applications" aria-label="Fechar aplicações">×</button>
+          </div>
+        </header>
+
+        <div class="pharmacy-applications-tabs" role="tablist" aria-label="Seções de aplicações">
+          <button class="pharmacy-applications-tab is-active" type="button" role="tab" aria-selected="true" data-pharmacy-applications-tab="pending">Aplicações pendentes</button>
+          <button class="pharmacy-applications-tab" type="button" role="tab" aria-selected="false" data-pharmacy-applications-tab="completed">Aplicações finalizadas</button>
+        </div>
+
+        <div class="pharmacy-applications-layout">
+          <main class="pharmacy-applications-content">
+            <section class="pharmacy-applications-panel" data-pharmacy-applications-panel="pending">
+              <div class="pharmacy-applications-section-heading">
+                <div>
+                  <p class="section-label">Acompanhamento</p>
+                  <h3>Aplicações pendentes</h3>
+                </div>
+                <span class="pharmacy-applications-count" id="pharmacy-applications-pending-count">0 clientes</span>
+              </div>
+              <label class="pharmacy-applications-search-field" for="pharmacy-applications-search"><span>Buscar por nome ou telefone</span><input id="pharmacy-applications-search" type="search" autocomplete="off" placeholder="Digite o nome ou telefone..." /></label>
+              <div class="pharmacy-applications-list" id="pharmacy-applications-pending-list" aria-live="polite"></div>
+            </section>
+
+            <section class="pharmacy-applications-panel hidden" data-pharmacy-applications-panel="completed">
+              <div class="pharmacy-applications-section-heading">
+                <div>
+                  <p class="section-label">Histórico</p>
+                  <h3>Aplicações finalizadas</h3>
+                </div>
+                <span class="pharmacy-applications-count is-completed" id="pharmacy-applications-completed-count">0 clientes</span>
+              </div>
+              <div class="pharmacy-applications-list" id="pharmacy-applications-completed-list" aria-live="polite"></div>
+            </section>
+
+          </main>
+
+          <aside class="pharmacy-application-form-card">
+            <div class="pharmacy-application-form-heading">
+              <p class="section-label">Novo controle</p>
+              <h3 id="pharmacy-application-form-title">Cadastrar aplicação</h3>
+              <p>Uma etapa será criada para cada ampola informada.</p>
+            </div>
+            <form class="pharmacy-application-form" id="pharmacy-application-form">
+              <label class="field">
+                <span>Nome do cliente</span>
+                <input id="pharmacy-application-name" type="text" autocomplete="name" placeholder="Nome completo" required />
+              </label>
+              <label class="field">
+                <span>Número de telefone (opcional)</span>
+                <input id="pharmacy-application-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" />
+              </label>
+              <label class="field">
+                <span>Medicamento</span>
+                <input id="pharmacy-application-medicine" type="text" autocomplete="off" placeholder="Medicamento comprado" required />
+              </label>
+              <div class="pharmacy-application-form-row">
+                <label class="field">
+                  <span>Quantidade de ampolas</span>
+                  <input id="pharmacy-application-ampoules" type="number" min="1" max="100" step="1" placeholder="0" required />
+                </label>
+                <label class="field">
+                  <span>Data da compra</span>
+                  <input id="pharmacy-application-purchase-date" type="date" required />
+                </label>
+              </div>
+              <button class="button button-primary pharmacy-application-submit" id="pharmacy-application-submit" type="submit">Cadastrar aplicação</button>
+            </form>
+            <p class="pharmacy-application-form-note">Este cadastro é separado das receitas e dos demais serviços de aplicação.</p>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="debts-modal" aria-hidden="true">
+      <div class="modal-card modal-debts" role="dialog" aria-modal="true" aria-labelledby="debts-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap"><div class="modal-icon alt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" /><path d="M8 12h8M8 16h5" /></svg></div><div><p class="section-label">Controle financeiro</p><h2 id="debts-title">Dívidas</h2><p class="debts-intro">Cadastre clientes e acompanhe os valores em aberto.</p></div></div>
+          <button class="icon-button" id="close-debts" aria-label="Fechar dívidas">×</button>
+        </header>
+        <div class="debts-layout">
+          <section class="debts-client-panel">
+            <div class="debts-section-heading"><div><p class="section-label">Novo cadastro</p><h3>Clientes com dívida</h3></div><span class="debts-count" id="debt-clients-count">0 clientes</span></div>
+            <label class="debts-client-search" for="debt-client-search"><span>Buscar cliente</span><input id="debt-client-search" type="search" autocomplete="off" placeholder="Nome, telefone ou CPF" /></label>
+            <form class="debts-client-form" id="debt-client-form">
+              <label class="field"><span>Nome</span><input id="debt-client-name" type="text" required placeholder="Nome completo" /></label>
+              <label class="field"><span>Telefone (opcional)</span><input id="debt-client-phone" type="tel" placeholder="(00) 00000-0000" /></label>
+              <label class="field"><span>CPF (opcional)</span><input id="debt-client-cpf" type="text" placeholder="000.000.000-00" /></label>
+              <button class="button button-primary" type="submit">Cadastrar cliente</button>
+            </form>
+            <div class="debts-client-list" id="debt-clients-list" aria-live="polite"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="debt-detail-modal" aria-hidden="true">
+      <div class="modal-card modal-debt-detail" role="dialog" aria-modal="true" aria-labelledby="debt-detail-title">
+        <header class="modal-header"><div><p class="section-label">Detalhe do cliente</p><h2 id="debt-detail-title">Dívida</h2></div><button class="icon-button" id="close-debt-detail" aria-label="Fechar detalhe">×</button></header>
+        <div class="debt-product-search-wrap"><div class="debt-product-search-heading"><label for="debt-product-search">Buscar produto por nome ou EAN</label><button class="button button-secondary" id="debt-configure-trier" type="button">Configurar API Trier</button></div><input id="debt-product-search" type="search" autocomplete="off" placeholder="Digite o nome ou código de barras" /><div class="debt-product-results hidden" id="debt-product-results"></div></div>
+        <section class="debt-detail-summary"><div><span>Total da dívida</span><strong id="debt-total">R$ 0,00</strong></div><button class="button button-primary" id="debt-payment-button" type="button">Abater dívida</button></section>
+        <section><h3>Produtos</h3><div class="debt-items-list" id="debt-items-list"></div></section>
+        <section class="debt-payments-section"><h3>Abatimentos realizados</h3><div class="debt-payments-list" id="debt-payments-list"></div></section>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="debt-payment-modal" aria-hidden="true">
+      <div class="modal-card modal-compact debt-payment-card" role="dialog" aria-modal="true" aria-labelledby="debt-payment-title"><header class="modal-header"><div><p class="section-label">Pagamento</p><h2 id="debt-payment-title">Abater dívida</h2></div><button class="icon-button" id="close-debt-payment" aria-label="Fechar abatimento">×</button></header><form id="debt-payment-form"><label class="field"><span>Valor pago</span><input id="debt-payment-amount" type="text" inputmode="decimal" placeholder="R$ 0,00" required /></label><footer class="modal-footer"><button class="button button-secondary" type="button" id="cancel-debt-payment">Cancelar</button><button class="button button-primary" type="submit">Confirmar abatimento</button></footer></form></div>
+    </div>
+
+    <div class="modal-overlay hidden" id="debt-remove-modal" aria-hidden="true">
+      <div class="modal-card modal-compact debt-payment-card" role="dialog" aria-modal="true" aria-labelledby="debt-remove-title"><header class="modal-header"><div><p class="section-label">Confirmação</p><h2 id="debt-remove-title">Remover produto</h2></div><button class="icon-button" id="close-debt-remove" aria-label="Fechar confirmação">×</button></header><form id="debt-remove-form"><label class="field"><span>Senha</span><input id="debt-remove-password" type="password" inputmode="numeric" autocomplete="off" placeholder="Digite a senha" required /></label><p class="debt-remove-note">Informe a senha para remover este produto da dívida.</p><footer class="modal-footer"><button class="button button-secondary" type="button" id="cancel-debt-remove">Cancelar</button><button class="button button-primary" type="submit">Confirmar remoção</button></footer></form></div>
+    </div>
+
     <div class="modal-overlay hidden" id="cashback-modal" aria-hidden="true">
       <div class="modal-card modal-cashback" role="dialog" aria-modal="true" aria-labelledby="cashback-title">
         <header class="modal-header cashback-header">
@@ -1072,8 +1208,8 @@
                 <span>Quantidade</span>
                 <input id="quote-product-quantity" type="number" min="1" step="1" value="1" />
               </label>
-              <label class="field">
-                <span>Valor unitário final</span>
+              <label class="field quote-product-price-field">
+                <span>Valor unitário final <strong class="quote-discount-badge hidden" id="quote-product-discount">0% de desconto</strong></span>
                 <div class="quote-money-input"><span>R$</span><input id="quote-product-price" type="text" inputmode="decimal" placeholder="0,00" /></div>
               </label>
               <button class="button button-primary quote-add-product" type="button" disabled>Adicionar ao orçamento</button>
@@ -1109,7 +1245,10 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-5A8.4 8.4 0 1 1 20.5 11.6Z" /><path d="M8.2 7.5c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.5l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.5.9 1.3 1.7 2.2 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.3.5.6 0 .3-.2 1.5-.8 2.1-.6.6-1.5.8-2.4.6-1.1-.3-2.8-1-4.7-2.7-1.5-1.4-2.6-3.1-2.9-4.2-.3-.8 0-1.6.5-2.1Z" /></svg>
               Enviar pelo WhatsApp
             </button>
-            <button class="button button-secondary quote-copy-button" id="copy-whatsapp-quote" type="button" disabled>Copiar mensagem</button>
+            <div class="quote-message-actions">
+              <button class="button button-secondary quote-copy-button" id="copy-whatsapp-quote" type="button" disabled>Copiar mensagem</button>
+              <button class="button button-secondary quote-edit-message-button" id="edit-whatsapp-quote" type="button" disabled>Editar mensagem</button>
+            </div>
             <button class="button button-primary quote-pdv-button" id="send-pdv-quote" type="button" disabled>Enviar orçamento ao PDV</button>
             <p class="quote-pdv-status hidden" id="quote-pdv-status" role="status" aria-live="polite"></p>
             <p class="quote-pdv-note">O pedido será criado no PDV, sem concluir o pagamento. Para vincular o cliente, informe nome e CPF. A equipe confirma a venda no caixa.</p>
@@ -1137,6 +1276,32 @@
             <div class="quote-product-chooser-placeholder">Escolha um produto na lista para ver preço de custo, preço de venda, estoque, código e EAN.</div>
           </section>
         </div>
+      </section>
+    </div>
+
+    <div class="modal-overlay hidden quote-message-editor-overlay" id="quote-message-editor-modal" aria-hidden="true">
+      <section class="modal-card modal-compact quote-message-editor-card" role="dialog" aria-modal="true" aria-labelledby="quote-message-editor-title">
+        <header class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon whatsapp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.5 11.6a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-5A8.4 8.4 0 1 1 20.5 11.6Z" /><path d="M8.2 7.5c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.5l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.5.9 1.3 1.7 2.2 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.3.5.6 0 .3-.2 1.5-.8 2.1-.6.6-1.5.8-2.4.6-1.1-.3-2.8-1-4.7-2.7-1.5-1.4-2.6-3.1-2.9-4.2-.3-.8 0-1.6.5-2.1Z" /></svg></div>
+            <div>
+              <p class="section-label">Mensagem do orçamento</p>
+              <h2 id="quote-message-editor-title">Editar mensagem</h2>
+              <p class="quote-message-editor-intro">Personalize o texto que será copiado ou enviado pelo WhatsApp.</p>
+            </div>
+          </div>
+          <button class="icon-button" id="close-quote-message-editor" type="button" aria-label="Fechar editor da mensagem">×</button>
+        </header>
+        <label class="field field-full quote-message-editor-field">
+          <span>Mensagem pronta</span>
+          <textarea id="quote-message-editor-text" rows="15" maxlength="6000"></textarea>
+        </label>
+        <p class="quote-message-editor-note">Depois de salva, esta mensagem continuará sendo usada ao copiar ou abrir o WhatsApp. Use “Restaurar padrão” somente quando quiser voltar ao texto automático.</p>
+        <footer class="modal-footer quote-message-editor-actions">
+          <button class="button button-secondary" id="reset-quote-message" type="button">Restaurar padrão</button>
+          <button class="button button-secondary" id="cancel-quote-message" type="button">Cancelar</button>
+          <button class="button button-primary" id="save-quote-message" type="button">Salvar mensagem</button>
+        </footer>
       </section>
     </div>
 

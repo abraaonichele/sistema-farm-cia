@@ -41,6 +41,7 @@ async function buildInstaller(platform) {
         directories: {
           output: stagingDir,
         },
+        publish: "never",
       },
     });
 
