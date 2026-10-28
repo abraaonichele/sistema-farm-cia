@@ -821,6 +821,7 @@
           <button class="purchases-tab is-active" type="button" role="tab" aria-selected="true" data-purchases-tab="shortages">Comprar faltas</button>
           <button class="purchases-tab" type="button" role="tab" aria-selected="false" data-purchases-tab="orders">Encomenda</button>
           <button class="purchases-tab" type="button" role="tab" aria-selected="false" data-purchases-tab="completed-orders">Encomendas concluídas</button>
+          <button class="purchases-tab" type="button" role="tab" aria-selected="false" data-purchases-tab="archived-shortages">Compras arquivadas</button>
         </div>
 
         <section class="purchases-panel" data-purchases-panel="shortages">
@@ -856,6 +857,13 @@
             </form>
           </div>
           <div class="purchases-list" id="shortages-list" aria-live="polite"></div>
+        </section>
+
+        <section class="purchases-panel hidden" data-purchases-panel="archived-shortages">
+          <div class="purchases-card">
+            <div class="purchases-card-heading"><div><p class="section-label">Histórico</p><h3>Compras arquivadas</h3></div><span class="purchases-count" id="archived-shortages-count">0 itens</span></div>
+          </div>
+          <div class="purchases-list" id="archived-shortages-list" aria-live="polite"></div>
         </section>
 
         <section class="purchases-panel hidden" data-purchases-panel="orders">

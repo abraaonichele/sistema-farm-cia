@@ -565,6 +565,7 @@
     pricingSettings: createDefaultPricingSettings(),
     pricingTabs: [],
     purchaseShortages: [],
+    archivedPurchaseShortages: [],
     purchaseOrders: [],
     completedPurchaseOrders: [],
     pharmacyApplications: [],
@@ -829,6 +830,8 @@
     shortageCancelEdit: document.getElementById("shortage-cancel-edit"),
     shortagesCount: document.getElementById("shortages-count"),
     shortagesList: document.getElementById("shortages-list"),
+    archivedShortagesCount: document.getElementById("archived-shortages-count"),
+    archivedShortagesList: document.getElementById("archived-shortages-list"),
     orderForm: document.getElementById("order-form"),
     orderName: document.getElementById("order-name"),
     orderDate: document.getElementById("order-date"),
@@ -1386,7 +1389,8 @@
     state.pricingTabs = pricingTabs.some((tab) => tab.id === "default")
       ? pricingTabs
       : [{ id: "default", name: "Precificação principal" }, ...pricingTabs];
-    state.purchaseShortages = purchaseShortages;
+    state.purchaseShortages = purchaseShortages.filter((item) => !item.archivedAt);
+    state.archivedPurchaseShortages = purchaseShortages.filter((item) => item.archivedAt);
     state.purchaseOrders = purchaseOrders.filter((order) => !order.completedAt);
     state.completedPurchaseOrders = purchaseOrders.filter((order) => order.completedAt);
     state.cashbackClients = cashbackClients.map(sanitizeCashbackClient);
@@ -4239,22 +4243,24 @@
     elements.shortagesCount.textContent = `${shortages.length} ${shortages.length === 1 ? "item" : "itens"}`;
     if (!shortages.length) {
       elements.shortagesList.innerHTML = `<div class="purchase-empty">Nenhum produto em falta. Adicione o primeiro item acima.</div>`;
-      return;
     }
-
-    elements.shortagesList.innerHTML = shortages.map((item) => `
+    const renderShortage = (item, archived = false) => `
       <article class="purchase-item">
         <div class="purchase-item-main">
           <strong>${escapeHtml(item.product)}</strong>
           <span>Quantidade: ${escapeHtml(item.quantity)}${item.ean ? ` • EAN: ${escapeHtml(item.ean)}` : ""}</span>
         </div>
-        <span class="purchase-item-detail">Estoque zerado em ${formatPurchaseDate(item.outOfStockDate)}</span>
+        <span class="purchase-item-detail">Estoque zerado em ${formatPurchaseDate(item.outOfStockDate)}${archived && item.archivedAt ? ` • Arquivado em ${formatPurchaseDateTime(item.archivedAt)}` : ""}</span>
         <div class="purchase-item-actions">
-          <button class="purchase-edit" type="button" data-purchase-action="edit-shortage" data-purchase-id="${item.id}" aria-label="Editar ${escapeHtml(item.product)}" title="Editar item">✎</button>
-          <button class="purchase-remove" type="button" data-purchase-action="remove-shortage" data-purchase-id="${item.id}" aria-label="Remover ${escapeHtml(item.product)}" title="Remover item">×</button>
+          ${archived ? `<span class="purchase-status-badge condition-paid">Arquivado</span>` : `<select class="purchase-status-select ${item.status || "shortage-distributor"}" data-purchase-action="shortage-status" data-purchase-id="${item.id}" aria-label="Status da compra"><option value="shortage-distributor"${item.status === "shortage-distributor" || !item.status ? " selected" : ""}>Em falta na distribuidora</option><option value="shortage-cart"${item.status === "shortage-cart" ? " selected" : ""}>No carrinho</option><option value="shortage-ordered"${item.status === "shortage-ordered" ? " selected" : ""}>Pedido realizado</option></select><button class="purchase-complete" type="button" data-purchase-action="archive-shortage" data-purchase-id="${item.id}" aria-label="Arquivar ${escapeHtml(item.product)}" title="Arquivar compra">✓</button><button class="purchase-edit" type="button" data-purchase-action="edit-shortage" data-purchase-id="${item.id}" aria-label="Editar ${escapeHtml(item.product)}" title="Editar item">✎</button>`}
+          <button class="purchase-remove" type="button" data-purchase-action="${archived ? "remove-archived-shortage" : "remove-shortage"}" data-purchase-id="${item.id}" aria-label="Remover ${escapeHtml(item.product)}" title="Remover item">×</button>
         </div>
       </article>
-    `).join("");
+    `;
+    if (shortages.length) elements.shortagesList.innerHTML = shortages.map((item) => renderShortage(item)).join("");
+    const archived = state.archivedPurchaseShortages.slice().sort((left, right) => String(right.archivedAt || "").localeCompare(String(left.archivedAt || "")));
+    if (elements.archivedShortagesCount) elements.archivedShortagesCount.textContent = `${archived.length} ${archived.length === 1 ? "item" : "itens"}`;
+    if (elements.archivedShortagesList) elements.archivedShortagesList.innerHTML = archived.length ? archived.map((item) => renderShortage(item, true)).join("") : `<div class="purchase-empty">Nenhuma compra arquivada.</div>`;
   }
 
   function getPurchaseConditionDetails(condition) {
@@ -4350,7 +4356,8 @@
         loadCollection(FIRESTORE_COLLECTIONS.purchaseShortages),
         loadCollection(FIRESTORE_COLLECTIONS.purchaseOrders),
       ]);
-      state.purchaseShortages = purchaseShortages;
+      state.purchaseShortages = purchaseShortages.filter((item) => !item.archivedAt);
+      state.archivedPurchaseShortages = purchaseShortages.filter((item) => item.archivedAt);
       state.purchaseOrders = purchaseOrders.filter((order) => !order.completedAt);
       state.completedPurchaseOrders = purchaseOrders.filter((order) => order.completedAt);
       renderPurchases();
@@ -4434,6 +4441,7 @@
       ean: elements.shortageEan.value.trim(),
       quantity: Number(elements.shortageQuantity.value),
       outOfStockDate: elements.shortageDate.value,
+      status: existing?.status || "shortage-distributor",
       createdAt: existing?.createdAt || new Date().toISOString(),
       createdBy: existing?.createdBy || getCurrentUser()?.id || "",
     };
@@ -4456,6 +4464,36 @@
       console.error("Erro ao salvar produto em falta:", error);
       showToast(getFirebaseMessage(error));
       return false;
+    }
+  }
+
+  async function updatePurchaseShortageStatus(recordId, status) {
+    const item = state.purchaseShortages.find((record) => record.id === recordId);
+    if (!item) return;
+    const next = { ...item, status, updatedAt: new Date().toISOString() };
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.purchaseShortages, next);
+      state.purchaseShortages = state.purchaseShortages.map((entry) => entry.id === recordId ? next : entry);
+      renderPurchaseShortages();
+    } catch (error) {
+      console.error("Erro ao atualizar status da falta:", error);
+      showToast(getFirebaseMessage(error));
+    }
+  }
+
+  async function archivePurchaseShortage(recordId) {
+    const item = state.purchaseShortages.find((record) => record.id === recordId);
+    if (!item) return;
+    const next = { ...item, archivedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    try {
+      await upsertDocument(FIRESTORE_COLLECTIONS.purchaseShortages, next);
+      state.purchaseShortages = state.purchaseShortages.filter((entry) => entry.id !== recordId);
+      state.archivedPurchaseShortages = [next, ...state.archivedPurchaseShortages];
+      renderPurchaseShortages();
+      showToast("Compra arquivada.");
+    } catch (error) {
+      console.error("Erro ao arquivar falta:", error);
+      showToast(getFirebaseMessage(error));
     }
   }
 
@@ -4547,6 +4585,20 @@
       showToast("Item removido com sucesso.");
     } catch (error) {
       console.error("Erro ao remover item de compras:", error);
+      showToast(getFirebaseMessage(error));
+    }
+  }
+
+  async function removeArchivedPurchaseShortage(recordId) {
+    const record = state.archivedPurchaseShortages.find((item) => item.id === recordId);
+    if (!record || !window.confirm(`Deseja remover a compra arquivada de ${record.product}?`)) return;
+    try {
+      await deleteDocument(FIRESTORE_COLLECTIONS.purchaseShortages, recordId);
+      state.archivedPurchaseShortages = state.archivedPurchaseShortages.filter((item) => item.id !== recordId);
+      renderPurchaseShortages();
+      showToast("Compra arquivada removida.");
+    } catch (error) {
+      console.error("Erro ao remover compra arquivada:", error);
       showToast(getFirebaseMessage(error));
     }
   }
@@ -9803,7 +9855,19 @@
     }
     if (button?.dataset.purchaseAction === "remove-shortage") {
       await removePurchaseRecord("shortage", button.dataset.purchaseId);
+    } else if (button?.dataset.purchaseAction === "archive-shortage") {
+      await archivePurchaseShortage(button.dataset.purchaseId);
     }
+  });
+
+  elements.shortagesList.addEventListener("change", async (event) => {
+    const select = event.target.closest("[data-purchase-action='shortage-status']");
+    if (select) await updatePurchaseShortageStatus(select.dataset.purchaseId, select.value);
+  });
+
+  elements.archivedShortagesList?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-purchase-action='remove-archived-shortage']");
+    if (button) await removeArchivedPurchaseShortage(button.dataset.purchaseId);
   });
 
   elements.ordersList.addEventListener("change", async (event) => {

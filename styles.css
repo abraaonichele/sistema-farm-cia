@@ -256,6 +256,24 @@
   white-space: nowrap;
 }
 
+.purchase-status-select.shortage-distributor {
+  color: #b42318;
+  border-color: #f1b6b0;
+  background: #fff1f0;
+}
+
+.purchase-status-select.shortage-cart {
+  color: #8a5a00;
+  border-color: #f0d18a;
+  background: #fff9e8;
+}
+
+.purchase-status-select.shortage-ordered {
+  color: #176b3a;
+  border-color: #a9d9bb;
+  background: #eefaf2;
+}
+
 .purchase-status-select {
   width: auto;
   font-family: inherit;
