@@ -37,11 +37,14 @@ async function buildInstaller(platform) {
   try {
     await build({
       targets: configuration.target,
+      // `publish` é uma opção do build (política de publicação), não um
+      // provedor dentro de `config`. Colocá-lo no config faz o electron-builder
+      // procurar um provedor chamado "never" e quebra o build no Windows.
+      publish: "never",
       config: {
         directories: {
           output: stagingDir,
         },
-        publish: "never",
       },
     });
 
