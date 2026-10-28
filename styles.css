@@ -1244,6 +1244,7 @@ button.pharmacy-application-dose:hover {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  flex-wrap: wrap;
   padding: 15px 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1253,6 +1254,11 @@ button.pharmacy-application-dose:hover {
 .pending-order-item strong,
 .pending-order-item span {
   display: block;
+}
+
+.pending-order-item > div {
+  min-width: 0;
+  flex: 1 1 280px;
 }
 
 .pending-order-item span,
@@ -1267,6 +1273,9 @@ button.pharmacy-application-dose:hover {
 
 .pending-order-item small {
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-empty {
@@ -1274,6 +1283,27 @@ button.pharmacy-application-dose:hover {
   border: 1px dashed var(--line);
   border-radius: 14px;
   text-align: center;
+}
+
+@media (max-width: 720px) {
+  .pending-orders-panel .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pending-orders-panel .panel-header .button {
+    width: 100%;
+  }
+
+  .pending-order-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pending-order-item small {
+    white-space: normal;
+  }
 }
 
 .update-modal-message {
