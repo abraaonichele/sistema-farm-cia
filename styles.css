@@ -12482,6 +12482,11 @@ body .app-shell > .sidebar .sidebar-category-menu > .sidebar-item.sidebar-patien
 }
 
 /* Módulo de CashBack */
+.modal-cashback,
+.cashback-message-overlay {
+  display: none !important;
+}
+
 .modal-cashback {
   background: #f6f8fb;
 }

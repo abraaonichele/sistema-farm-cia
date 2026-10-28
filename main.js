@@ -9358,7 +9358,7 @@
   elements.debtPaymentButton.addEventListener("click", openDebtPayment);
   elements.debtPaymentForm.addEventListener("submit", async (event) => { event.preventDefault(); await submitDebtPayment(); });
 
-  elements.openCashback.addEventListener("click", () => {
+  elements.openCashback?.addEventListener("click", () => {
     openCashbackModal();
   });
 
@@ -9652,7 +9652,7 @@
     window.open(`https://wa.me/?text=${encodeURIComponent(getWhatsappQuoteMessage())}`, "_blank", "noopener");
   });
 
-  elements.closeCashback.addEventListener("click", () => {
+  elements.closeCashback?.addEventListener("click", () => {
     closeModal(elements.cashbackModal);
   });
 
