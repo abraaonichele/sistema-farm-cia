@@ -606,7 +606,7 @@
 .debt-detail-summary strong { display: block; margin-top: 4px; color: #b23b2a; font-size: 1.8rem; }
 .modal-debt-detail > section { margin-bottom: 16px; }
 .debt-items-list, .debt-payments-list { display: grid; gap: 8px; margin-top: 12px; }
-.debt-item-row, .debt-payment-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px auto auto; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #f6f9fd; }
+.debt-item-row, .debt-payment-row { display: grid; grid-template-columns: minmax(0, 1fr) 110px 150px auto auto; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #f6f9fd; }
 .debt-item-row strong, .debt-item-row small { display: block; }
 .debt-item-row small { margin-top: 3px; color: var(--muted); }
 .debt-item-row input { width: 100%; min-height: 38px; }
@@ -619,8 +619,8 @@
 @media (max-width: 850px) {
   .debts-client-form { grid-template-columns: repeat(2, 1fr); }
   .debts-client-form button { width: 100%; }
-  .debt-item-row { grid-template-columns: 1fr 120px; }
-  .debt-item-row > strong { grid-column: 2; }
+  .debt-item-row { grid-template-columns: 1fr 120px 140px; }
+  .debt-item-row > strong { grid-column: 3; }
 }
 
 @media (max-width: 600px) {
@@ -1227,6 +1227,27 @@ button.pharmacy-application-dose:hover {
 
 .pending-orders-panel {
   grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.pending-orders-panel .panel-header {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.pending-orders-panel .panel-header > div {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.pending-orders-panel .panel-header h2 {
+  overflow-wrap: anywhere;
 }
 
 .dashboard-panel-subtitle {
@@ -1240,11 +1261,11 @@ button.pharmacy-application-dose:hover {
 }
 
 .pending-order-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   align-items: center;
-  justify-content: space-between;
   gap: 18px;
-  flex-wrap: wrap;
+  min-width: 0;
   padding: 15px 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1258,7 +1279,6 @@ button.pharmacy-application-dose:hover {
 
 .pending-order-item > div {
   min-width: 0;
-  flex: 1 1 280px;
 }
 
 .pending-order-item span,
@@ -1276,6 +1296,7 @@ button.pharmacy-application-dose:hover {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: right;
 }
 
 .dashboard-empty {
@@ -1297,12 +1318,13 @@ button.pharmacy-application-dose:hover {
 
   .pending-order-item {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
   }
 
   .pending-order-item small {
     white-space: normal;
+    text-align: left;
   }
 }
 

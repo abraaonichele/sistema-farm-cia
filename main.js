@@ -3772,7 +3772,7 @@
     elements.debtDetailTitle.textContent = client.customerName;
     elements.debtTotal.textContent = formatCurrency(Math.max(0, getDebtClientTotal(client)));
     elements.debtItemsList.innerHTML = client.items.length ? client.items.map((item) => `
-      <div class="debt-item-row"><div><strong>${escapeHtml(item.productName)}</strong><small>${item.ean ? `EAN ${escapeHtml(item.ean)} • ` : ""}${item.quantity} un.</small></div><label>Preço<input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-debt-item-price="${escapeHtml(item.id)}" /></label><strong>${formatCurrency(item.quantity * item.price)}</strong><button class="debt-item-remove" type="button" data-debt-action="remove-item" data-debt-item-id="${escapeHtml(item.id)}">Remover</button></div>
+      <div class="debt-item-row"><div><strong>${escapeHtml(item.productName)}</strong><small>${item.ean ? `EAN ${escapeHtml(item.ean)} • ` : ""}${item.quantity} un.</small></div><label>Quantidade<input type="number" min="1" step="1" value="${item.quantity}" data-debt-item-quantity="${escapeHtml(item.id)}" /></label><label>Preço unitário<input type="text" inputmode="decimal" value="${formatDecimalInput(item.price)}" data-debt-item-price="${escapeHtml(item.id)}" /></label><strong>${formatCurrency(item.quantity * item.price)}</strong><button class="debt-item-remove" type="button" data-debt-action="remove-item" data-debt-item-id="${escapeHtml(item.id)}">Remover</button></div>
     `).join("") : `<div class="debt-empty">Busque um produto acima para adicionar à dívida.</div>`;
     elements.debtPaymentsList.innerHTML = client.payments.length ? client.payments.slice().reverse().map((payment) => `<div class="debt-payment-row"><span>${formatPurchaseDateTime(payment.createdAt)}</span><strong>- ${formatCurrency(payment.amount)}</strong><button type="button" data-debt-action="undo-payment" data-debt-payment-id="${escapeHtml(payment.id)}">Desfazer</button></div>`).join("") : `<div class="debt-empty">Nenhum abatimento realizado.</div>`;
   }
@@ -9410,12 +9410,19 @@
     if (product) addDebtProduct(product);
   });
   elements.debtItemsList.addEventListener("change", async (event) => {
-    const input = event.target.closest("[data-debt-item-price]");
+    const input = event.target.closest("[data-debt-item-price], [data-debt-item-quantity]");
     if (!input) return;
     const client = state.debts.find((item) => item.id === state.currentDebtClientId);
     const item = client?.items.find((entry) => entry.id === input.dataset.debtItemPrice);
     if (!item) return;
-    item.price = Math.max(0, parseNumberValue(input.value));
+    if (input.dataset.debtItemPrice) {
+      const price = parseNumberValue(input.value);
+      if (price === null) return;
+      item.price = Math.max(0, price);
+    } else {
+      const quantity = Number(input.value);
+      item.quantity = Number.isInteger(quantity) && quantity >= 1 ? quantity : item.quantity;
+    }
     await saveDebtClient(client);
   });
   elements.debtItemsList.addEventListener("click", async (event) => {
